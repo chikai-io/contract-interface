@@ -1,18 +1,8 @@
-use near_contract_standards::fungible_token::metadata::{
-    FungibleTokenMetadata, FungibleTokenMetadataProvider, FT_METADATA_SPEC,
-};
-use near_contract_standards::fungible_token::FungibleToken;
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LazyOption;
-use near_sdk::json_types::U128;
-use near_sdk::{
-    env, ext_contract, log, near_bindgen, require, AccountId, Balance, BorshStorageKey, Gas,
-    PanicOnDefault, PromiseOrValue,
-};
+use crate::Call;
+use near_sdk::borsh::{self};
+use near_sdk::ext_contract;
 
-use near_sdk::serde::{de::DeserializeOwned, Deserialize, Serialize};
-// use near_sdk::borsh::{BorshSerialize, BorshDeserialize};
-
+// TODO: test borsh usage
 #[ext_contract]
 pub trait Message {
     #[result_serializer(borsh)]
@@ -21,56 +11,79 @@ pub trait Message {
 
 #[ext_contract]
 pub trait ExtStatusMessage {
+    /// (Original set_status1 documentation)
     fn set_status1(&mut self, message: String);
+
+    /// (Original set_status2 documentation)
     fn set_status2(&mut self, message1: String, message2: String);
 
+    /// (Original get_status documentation)
     fn get_status(&self, account_id: AccountId) -> Option<String>;
 }
 
-use crate::Call;
+// example on how a macro-generated code could look like
+// in order to facilitate the interface usage
+pub mod ext_status_message_example {
+    use crate::args::{Json1, JsonArgs};
+    use crate::interface::call_builder::ArgsCall;
+    use near_sdk::AccountId;
+
+    #[allow(non_camel_case_types)]
+    pub struct set_status1 {
+        contract_being_called: AccountId,
+        method_name: String,
+    }
+
+    impl set_status1 {
+        /// Builder for calling the `set_status1` method on a contract.
+        pub fn contract(contract_being_called: AccountId) -> Self {
+            Self {
+                contract_being_called,
+                method_name: String::from("set_status1"),
+            }
+        }
+
+        /// Informs the arguments (except for `self`) that `set_status1` should receive.
+        /// 0. `message`: `String`
+        ///
+        /// (Original set_status1 documentation)
+        pub fn args<Args>(self, args: Args) -> ArgsCall<JsonArgs<Json1<String>>>
+        where
+            Args: Into<JsonArgs<Json1<String>>>,
+        {
+            let args = args.into();
+            ArgsCall::new(self.method_name, self.contract_being_called, args)
+        }
+    }
+}
 
 pub fn ex() {
     const SINGLE_CALL_GAS: u64 = 200000000000000;
-    let account_id: AccountId = "testing.acc".parse().unwrap();
-    let message: String = "ma-oee".to_string();
-
     use crate::args::Json1;
+    use near_sdk::Gas;
 
-    // ext_status_message::set_status()
+    // current/standard call syntax
+    ext_status_message::set_status1(
+        String::from("my_value"),
+        "my.contract".parse().unwrap(),
+        0,
+        Gas::from(SINGLE_CALL_GAS),
+    );
 
-    // let args = JsonArgs(Json1(message.clone()));
-
+    // filling everything manually
     Call::contract("my.contract".parse().unwrap())
-        .method(String::from("set_status"))
+        .method(String::from("set_status1"))
         .args(Json1(String::from("my_value")))
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
         .call();
 
-    // ordered_contract_call(
-    //     Json1(message.clone()),
-    //     "set_status",
-    //     account_id.clone(),
-    //     0,
-    //     Gas::from(SINGLE_CALL_GAS),
-    // );
-
-    // ordered_contract_call(
-    //     JsonArgs(Json1(message.clone())),
-    //     "set_status",
-    //     account_id.clone(),
-    //     0,
-    //     Gas::from(SINGLE_CALL_GAS),
-    // );
-
-    // // contract_call();
-
-    // ext_status_message::set_status1(
-    //     message.clone(),
-    //     account_id.clone(),
-    //     0,
-    //     Gas::from(SINGLE_CALL_GAS),
-    // );
+    // using with the method name and args types "auto-generated"
+    ext_status_message_example::set_status1::contract("my.contract".parse().unwrap())
+        .args(String::from("my_value"))
+        .send_amount(0)
+        .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
+        .call();
 
     // ext_status_message::set_status1(message, account_id.clone(), 0, Gas::from(SINGLE_CALL_GAS))
     //     .then(ext_status_message::get_status(

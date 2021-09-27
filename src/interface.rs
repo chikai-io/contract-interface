@@ -76,6 +76,13 @@ pub mod call_builder {
     }
 
     impl<Args> ArgsCall<Args> {
+        pub fn new(method_name: String, contract_being_called: AccountId, args: Args) -> Self {
+            ArgsCall {
+                method_name,
+                contract_being_called,
+                args,
+            }
+        }
         pub fn send_amount(self, send_amount: Balance) -> AmountCall<Args> {
             AmountCall {
                 method_name: self.method_name,
