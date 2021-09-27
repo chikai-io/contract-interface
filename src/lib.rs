@@ -1,5 +1,5 @@
 pub mod args;
-pub mod ex;
+pub mod example;
 pub mod interface;
 pub mod stand;
 

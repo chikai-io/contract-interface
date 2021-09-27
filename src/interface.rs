@@ -60,6 +60,10 @@ pub mod call_builder {
     }
 
     impl MethodCall {
+        pub fn new(contract_call: Call, method_name: String) -> Self {
+            contract_call.method(method_name)
+        }
+
         pub fn args<Args>(self, args: Args) -> ArgsCall<Args> {
             ArgsCall {
                 method_name: self.method_name,
@@ -76,13 +80,10 @@ pub mod call_builder {
     }
 
     impl<Args> ArgsCall<Args> {
-        pub fn new(method_name: String, contract_being_called: AccountId, args: Args) -> Self {
-            ArgsCall {
-                method_name,
-                contract_being_called,
-                args,
-            }
+        pub fn new(method_call: MethodCall, args: Args) -> Self {
+            method_call.args(args)
         }
+
         pub fn send_amount(self, send_amount: Balance) -> AmountCall<Args> {
             AmountCall {
                 method_name: self.method_name,
@@ -111,6 +112,10 @@ pub mod call_builder {
     }
 
     impl<Args> AmountCall<Args> {
+        pub fn new(args_call: ArgsCall<Args>, send_amount: Balance) -> Self {
+            args_call.send_amount(send_amount)
+        }
+
         pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCall<Args> {
             GasCall {
                 method_name: self.method_name,
@@ -134,6 +139,10 @@ pub mod call_builder {
     where
         Args: ArgsType,
     {
+        pub fn new(amount_call: AmountCall<Args>, maximum_allowed_consumption: Gas) -> Self {
+            amount_call.prepaid_gas(maximum_allowed_consumption)
+        }
+
         pub fn call(self) {
             near_sdk::Promise::new(self.contract_being_called).function_call(
                 self.method_name.to_string(),
