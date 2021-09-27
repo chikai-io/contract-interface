@@ -11,9 +11,12 @@ impl<Args> ArgsType for BorshArgs<Args>
 where
     Args: BorshSerDe,
 {
-    fn to_byte_vec(&self) -> Vec<u8> {
+    type Error = std::io::Error;
+    fn to_bytes(&self) -> Result<Vec<u8>, Self::Error> {
         BorshSerialize::try_to_vec(self)
-            .expect("Failed to serialize the cross contract args using Borsh.")
+    }
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        near_sdk::borsh::BorshDeserialize::try_from_slice(bytes)
     }
 }
 

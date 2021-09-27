@@ -13,8 +13,13 @@ impl<Args> ArgsType for JsonArgs<Args>
 where
     Args: SerDe,
 {
-    fn to_byte_vec(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("Failed to serialize the cross contract args using JSON.")
+    type Error = near_sdk::serde_json::Error;
+    fn to_bytes(&self) -> Result<Vec<u8>, Self::Error> {
+        near_sdk::serde_json::to_vec(self)
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        near_sdk::serde_json::from_slice(bytes)
     }
 }
 
@@ -23,8 +28,13 @@ where
 pub struct Json0();
 
 impl ArgsType for Json0 {
-    fn to_byte_vec(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("Failed to serialize the cross contract args using JSON.")
+    type Error = near_sdk::serde_json::Error;
+    fn to_bytes(&self) -> Result<Vec<u8>, Self::Error> {
+        near_sdk::serde_json::to_vec(self)
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        near_sdk::serde_json::from_slice(bytes)
     }
 }
 impl From<Json0> for JsonArgs<Json0> {
@@ -51,8 +61,13 @@ impl<T0> ArgsType for Json1<T0>
 where
     T0: SerDe,
 {
-    fn to_byte_vec(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("Failed to serialize the cross contract args using JSON.")
+    type Error = near_sdk::serde_json::Error;
+    fn to_bytes(&self) -> Result<Vec<u8>, Self::Error> {
+        near_sdk::serde_json::to_vec(self)
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        near_sdk::serde_json::from_slice(bytes)
     }
 }
 impl<T0> From<Json1<T0>> for JsonArgs<Json1<T0>>
@@ -109,8 +124,13 @@ where
     T0: SerDe,
     T1: SerDe,
 {
-    fn to_byte_vec(&self) -> Vec<u8> {
-        serde_json::to_vec(self).expect("Failed to serialize the cross contract args using JSON.")
+    type Error = near_sdk::serde_json::Error;
+    fn to_bytes(&self) -> Result<Vec<u8>, Self::Error> {
+        near_sdk::serde_json::to_vec(self)
+    }
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        near_sdk::serde_json::from_slice(bytes)
     }
 }
 impl<T0, T1> From<Json2<T0, T1>> for JsonArgs<Json2<T0, T1>>
