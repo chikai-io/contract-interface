@@ -5,5 +5,5 @@ pub mod example_call_out;
 pub mod interface;
 pub mod stand;
 
-pub use args::ArgsType;
+// pub use args::ArgsSerDe;
 pub use interface::{CallOut, CalledIn};

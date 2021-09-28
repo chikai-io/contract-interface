@@ -1,42 +1,26 @@
-use crate::args::ArgsType;
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use crate::args::{FromBytes, ToBytes};
+use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 
-pub trait BorshSerDe: BorshSerialize + BorshDeserialize {}
-impl<T> BorshSerDe for T where T: BorshSerialize + BorshDeserialize {}
+pub struct Borsh;
 
-#[derive(BorshSerialize, BorshDeserialize)]
-pub struct BorshArgs<T: BorshSerDe>(T);
-
-impl<Args> ArgsType for BorshArgs<Args>
+impl<T> ToBytes<Borsh> for T
 where
-    Args: BorshSerDe,
+    T: BorshSerialize,
 {
     type Error = std::io::Error;
+
     fn to_bytes(&self) -> Result<Vec<u8>, Self::Error> {
         BorshSerialize::try_to_vec(self)
     }
-    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
-        near_sdk::borsh::BorshDeserialize::try_from_slice(bytes)
-    }
 }
 
-// #[derive(BorshSerialize, BorshDeserialize)]
-// pub struct  Borsh0();
+impl<T> FromBytes<Borsh> for T
+where
+    T: BorshDeserialize,
+{
+    type Error = std::io::Error;
 
-// #[derive(BorshSerialize, BorshDeserialize)]
-// pub struct  Borsh1<T0: BorshSerDe>(T0,);
-
-// #[derive(BorshSerialize, BorshDeserialize)]
-// pub struct  Borsh2<T0: BorshSerDe, T1: BorshSerDe>(T0,T1,);
-
-// impl OrderedBorsh for BorshArgs<Borsh0> {}
-
-// impl<T0> OrderedBorsh for BorshArgs<Borsh1<T0>>
-// where
-//     T0: BorshSerDe
-// {}
-
-// impl<T0, T1> OrderedBorsh for BorshArgs<Borsh2<T0, T1>> where
-//     T0: BorshSerDe,
-//     T1: BorshSerDe,
-// {}
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::Error> {
+        BorshDeserialize::try_from_slice(bytes)
+    }
+}

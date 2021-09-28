@@ -2,7 +2,6 @@
 //! (the consumer contracts still need to define their CallOut's)
 
 use super::CalledIn;
-use crate::args::{Json1, Json2};
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     near_bindgen, PanicOnDefault,
@@ -12,24 +11,78 @@ use near_sdk::{
 /// (Original Message documentation)
 pub trait Message {
     /// (Original method_a documentation)
-    fn method_a(&mut self, my_string: String) -> bool;
+    fn method_a(&mut self, my_string: String);
 
     /// (Original method_b documentation)
     fn method_b(&mut self, my_string: String, my_bool: bool) -> bool;
 }
 // created by macro
+///
+///
+/// (Original Message documentation)
 pub mod message_concrete {
-    use std::marker::PhantomData;
-
     ///
     ///
     /// (Original method_a documentation)
-    pub struct CalledInMethodA<State>(PhantomData<State>);
+    pub mod method_a {
+        use near_sdk::serde::Deserialize;
+        use std::marker::PhantomData;
+
+        ///
+        ///
+        /// (Original method_a documentation)
+        #[derive(Deserialize)]
+        #[serde(crate = "near_sdk::serde")]
+        pub struct Args {
+            pub my_string: String,
+        }
+
+        ///
+        ///
+        /// /// (Original method_a documentation)
+        pub type Return = ();
+
+        ///
+        ///
+        /// (Original method_a documentation)
+        pub struct CalledIn<State> {
+            _trait_param: (),
+            _method_param: (),
+            _state_param: PhantomData<State>,
+        }
+    }
 
     ///
     ///
     /// (Original method_b documentation)
-    pub struct CalledInMethodB<State>(PhantomData<State>);
+    pub mod method_b {
+        use near_sdk::serde::Deserialize;
+        use std::marker::PhantomData;
+
+        ///
+        ///
+        /// (Original method_b documentation)
+        #[derive(Deserialize)]
+        #[serde(crate = "near_sdk::serde")]
+        pub struct Args {
+            pub my_string: String,
+            pub my_bool: bool,
+        }
+
+        ///
+        ///
+        /// (Original method_b documentation)
+        pub type Return = bool;
+
+        ///
+        ///
+        /// (Original method_b documentation)
+        pub struct CalledIn<State> {
+            _trait_param: (),
+            _method_param: (),
+            _state_param: PhantomData<State>,
+        }
+    }
 }
 
 // specific
@@ -45,7 +98,7 @@ pub struct Abc {
 // specific (where the CalledIn "derive" must happen)
 // #[CalledIn]
 impl Message for Abc {
-    fn method_a(&mut self, _my_string: String) -> bool {
+    fn method_a(&mut self, _my_string: String) {
         todo!()
     }
     fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool {
@@ -53,35 +106,33 @@ impl Message for Abc {
     }
 }
 // created by macro
-impl CalledIn for message_concrete::CalledInMethodA<Abc> {
+impl CalledIn<crate::args::Json, crate::args::Json> for message_concrete::method_a::CalledIn<Abc> {
     type State = Abc;
-    type Args = Json1<String>;
-    type Return = Json1<bool>;
+    type Args = message_concrete::method_a::Args;
+    type Return = message_concrete::method_a::Return;
     type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
     fn exposed_called_in() {
-        let method_wrapper = |state: &mut <Self as CalledIn>::State,
-                              args: <Self as CalledIn>::Args| {
-            let res = <<Self as CalledIn>::State as Message>::method_a(state, args.0);
-            Some(Json1(res))
+        let method_wrapper = |state: &mut Self::State, args: Self::Args| {
+            let () = <Self::State as Message>::method_a(state, args.my_string);
+            None
         };
-        <Self as CalledIn>::called_in(method_wrapper);
+        Self::called_in(method_wrapper);
     }
 }
 // created by macro
-impl CalledIn for message_concrete::CalledInMethodB<Abc> {
+impl CalledIn<crate::args::Json, crate::args::Json> for message_concrete::method_b::CalledIn<Abc> {
     type State = Abc;
-    type Args = Json2<String, bool>;
-    type Return = Json1<bool>;
+    type Args = message_concrete::method_b::Args;
+    type Return = message_concrete::method_b::Return;
     type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
     fn exposed_called_in() {
-        let method_wrapper = |state: &mut <Self as CalledIn>::State,
-                              args: <Self as CalledIn>::Args| {
-            let res = <<Self as CalledIn>::State as Message>::method_b(state, args.0, args.1);
-            Some(Json1(res))
+        let method_wrapper = |state: &mut Self::State, args: Self::Args| {
+            let res = <Self::State as Message>::method_b(state, args.my_string, args.my_bool);
+            Some(res)
         };
-        <Self as CalledIn>::called_in(method_wrapper);
+        Self::called_in(method_wrapper);
     }
 }
 
@@ -90,7 +141,7 @@ impl CalledIn for message_concrete::CalledInMethodB<Abc> {
 #[no_mangle]
 pub extern "C" fn method_a() {
     #[allow(unused_imports)]
-    message_concrete::CalledInMethodA::<Abc>::exposed_called_in()
+    message_concrete::method_a::CalledIn::<Abc>::exposed_called_in()
 }
 
 // must be created by macro (or by hand)
@@ -98,5 +149,5 @@ pub extern "C" fn method_a() {
 #[no_mangle]
 pub extern "C" fn method_b() {
     #[allow(unused_imports)]
-    message_concrete::CalledInMethodB::<Abc>::exposed_called_in()
+    message_concrete::method_b::CalledIn::<Abc>::exposed_called_in()
 }
