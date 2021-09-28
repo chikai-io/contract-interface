@@ -3,20 +3,22 @@ pub use call_out_builder::CallOut;
 // generic
 pub trait CalledIn {
     type State: crate::args::borsh::BorshSerDe + Default;
-    type Method: FnOnce(&mut Self::State, Self::Args) -> Option<Self::Return>;
-    type Args: crate::args::ArgsType;
 
-    type Return: crate::args::ArgsType;
+    type Method: FnOnce(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
+
+    type Args: crate::args::ArgsType;
+
+    type Return: crate::args::ArgsType;
 
     fn called_in(method: Self::Method) {
         use crate::args::ArgsType;
 
         near_sdk::env::setup_panic_hook();
         if near_sdk::env::attached_deposit() != 0 {
-            near_sdk::env::panic_str("Method method_a doesn\'t accept deposit");
+            near_sdk::env::panic_str("Method doesn\'t accept deposit");
         }
 
         let bytes = near_sdk::env::input().expect("Expected input since method has arguments.");
