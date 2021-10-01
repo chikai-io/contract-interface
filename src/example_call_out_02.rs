@@ -1,23 +1,19 @@
 //! Example of calling an external contract.
 
-use near_sdk::{ext_contract, AccountId as AccId};
+use near_sdk::ext_contract;
+use near_sdk::serde::{Deserialize, Serialize};
 
-/// (Original ExtStatusMessage documentation)
-#[ext_contract]
-pub trait ExtStatusMessage {
+#[derive(Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct OneArg;
+
+/// (Original Trait documentation)
+// #[ext_contract]
+pub trait Trait<X> {
+    type MyType;
+
     /// (Original set_status1 documentation)
-    fn set_status1(&mut self, message: String);
-
-    /// (Original set_status2 documentation)
-    fn set_status2(&mut self, message1: String, message2: String);
-
-    /// (Original get_status documentation)
-    fn get_status(&self, account_id: AccId) -> Option<String>;
-
-    // TODO: make it work with generics
-    // TODO: test re-utilization from call_in expansions
-    // (remember that the State is not necessary)
-    // fn method_b<Y, Z>(&mut self, my_string: String, my_y: Y) -> Z;
+    fn method_a<Y, Z>(&mut self, message: String, my_x: X, my_y: Y, my_type: Self::MyType) -> Z;
 }
 
 pub fn example() {
@@ -25,13 +21,12 @@ pub fn example() {
 
     const SINGLE_CALL_GAS: u64 = 200000000000000;
 
-    // current/standard call syntax
-    ext_status_message::set_status1(
-        String::from("my_value"),
-        "my.contract".parse().unwrap(),
-        0,
-        Gas::from(SINGLE_CALL_GAS),
-    );
+    // trait_a::method_a(
+    //     String::from("my_value"),
+    //     "my.contract".parse().unwrap(),
+    //     0,
+    //     Gas::from(SINGLE_CALL_GAS),
+    // );
 
     // generic builder
     crate::CallOut::contract("my.contract".parse().unwrap())
@@ -44,23 +39,15 @@ pub fn example() {
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
         .call_out();
 
+    let my_x = true;
+    let my_y = 1u8;
+    let my_type = 5u16;
     // specialized builder
-    ext_status_message_example::set_status1::CallOut::contract("my.contract".parse().unwrap())
-        .args(String::from("my_value"))
+    _trait::method_a::CallOut::contract("my.contract".parse().unwrap())
+        .args(String::from("my_value"), my_x, my_y, my_type)
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
         .call_out();
-
-    //
-    // later: using with promisses
-    //
-    // ext_status_message::set_status1(message, account_id.clone(), 0, Gas::from(SINGLE_CALL_GAS))
-    //     .then(ext_status_message::get_status(
-    //         env::signer_account_id(),
-    //         account_id,
-    //         0,
-    //         Gas::from(SINGLE_CALL_GAS),
-    //     ));
 }
 
 // example on how a macro-generated code could look like
@@ -68,37 +55,40 @@ pub fn example() {
 ///
 ///
 /// (Original ExtStatusMessage documentation)
-pub mod ext_status_message_example {
+pub mod _trait {
 
     ///
     ///
-    /// (Original set_status1 documentation)
-    pub mod set_status1 {
+    /// (Original method_a documentation)
+    pub mod method_a {
         use crate::interface::call_out;
         use near_sdk::serde::{Deserialize, Serialize};
         use near_sdk::{AccountId, Balance, Gas};
 
         ///
         ///
-        /// (Original set_status1 documentation)
+        /// (Original method_a documentation)
         #[derive(Serialize, Deserialize)]
         #[serde(crate = "near_sdk::serde")]
-        pub struct Args {
+        pub struct Args<X, MyType, Y> {
             message: String,
+            my_x: X,
+            my_y: Y,
+            my_type: MyType,
         }
 
         pub fn method_name() -> &'static str {
-            "set_status1"
+            "method_a"
         }
 
         ///
         ///
-        /// (Original set_status1 documentation)
+        /// (Original method_a documentation)
         pub struct CallOut;
         impl CallOut {
-            /// Builder for calling the `set_status1` method on a contract.
+            /// Builder for calling the `method_a` method on a contract.
             ///
-            /// (Original set_status1 documentation)
+            /// (Original method_a documentation)
             pub fn contract(contract_being_called: AccountId) -> MethodCallOut {
                 MethodCallOut {
                     contract_being_called,
@@ -109,7 +99,7 @@ pub mod ext_status_message_example {
 
         ///
         ///
-        /// (Original set_status1 documentation)
+        /// (Original method_a documentation)
         pub struct MethodCallOut {
             contract_being_called: AccountId,
             method_name: String,
@@ -126,11 +116,22 @@ pub mod ext_status_message_example {
             // also replicated on every method and definition on
             // Args/Amount/GasCall, besides it being more specialized.
 
-            /// Informs the arguments (except for `self`) that `set_status1` should receive.
+            /// Informs the arguments (except for `self`) that `method_a` should receive.
             ///
-            /// (Original set_status1 documentation)
-            pub fn args(self, message: String) -> ArgsCallOut {
-                let args = Args { message };
+            /// (Original method_a documentation)
+            pub fn args<X, MyType, Y>(
+                self,
+                message: String,
+                my_x: X,
+                my_y: Y,
+                my_type: MyType,
+            ) -> ArgsCallOut<X, MyType, Y> {
+                let args = Args::<X, MyType, Y> {
+                    message,
+                    my_x,
+                    my_y,
+                    my_type,
+                };
                 ArgsCallOut::new(self.method_name, self.contract_being_called, args)
             }
 
@@ -147,15 +148,19 @@ pub mod ext_status_message_example {
         }
         ///
         ///
-        /// (Original set_status1 documentation)
-        pub struct ArgsCallOut {
+        /// (Original method_a documentation)
+        pub struct ArgsCallOut<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
-            args: Args,
+            args: Args<X, MyType, Y>,
         }
 
-        impl ArgsCallOut {
-            pub fn new(method_name: String, contract_being_called: AccountId, args: Args) -> Self {
+        impl<X, MyType, Y> ArgsCallOut<X, MyType, Y> {
+            pub fn new(
+                method_name: String,
+                contract_being_called: AccountId,
+                args: Args<X, MyType, Y>,
+            ) -> Self {
                 Self {
                     method_name,
                     contract_being_called,
@@ -165,8 +170,8 @@ pub mod ext_status_message_example {
 
             ///
             ///
-            /// (Original set_status1 documentation)   
-            pub fn send_amount(self, send_amount: Balance) -> AmountCallOut {
+            /// (Original method_a documentation)
+            pub fn send_amount(self, send_amount: Balance) -> AmountCallOut<X, MyType, Y> {
                 AmountCallOut {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
@@ -177,8 +182,8 @@ pub mod ext_status_message_example {
 
             ///
             ///
-            /// (Original set_status1 documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut {
+            /// (Original method_a documentation)
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut<X, MyType, Y> {
                 GasCallOut {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
@@ -188,14 +193,18 @@ pub mod ext_status_message_example {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::ArgsCallOut<Args, crate::args::Json> {
+            pub fn into_generic(
+                self,
+            ) -> call_out::ArgsCallOut<Args<X, MyType, Y>, crate::args::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::ArgsCallOut<Args, crate::args::Json>> for ArgsCallOut {
-            fn into(self) -> call_out::ArgsCallOut<Args, crate::args::Json> {
+        impl<X, MyType, Y> Into<call_out::ArgsCallOut<Args<X, MyType, Y>, crate::args::Json>>
+            for ArgsCallOut<X, MyType, Y>
+        {
+            fn into(self) -> call_out::ArgsCallOut<Args<X, MyType, Y>, crate::args::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -204,19 +213,19 @@ pub mod ext_status_message_example {
 
         ///
         ///
-        /// (Original set_status1 documentation)
-        pub struct AmountCallOut {
+        /// (Original method_a documentation)
+        pub struct AmountCallOut<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
-            args: Args,
+            args: Args<X, MyType, Y>,
             send_amount: Balance,
         }
 
-        impl AmountCallOut {
+        impl<X, MyType, Y> AmountCallOut<X, MyType, Y> {
             ///
             ///
-            /// (Original set_status1 documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut {
+            /// (Original method_a documentation)
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut<X, MyType, Y> {
                 GasCallOut {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
@@ -226,14 +235,18 @@ pub mod ext_status_message_example {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::AmountCallOut<Args, crate::args::Json> {
+            pub fn into_generic(
+                self,
+            ) -> call_out::AmountCallOut<Args<X, MyType, Y>, crate::args::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::AmountCallOut<Args, crate::args::Json>> for AmountCallOut {
-            fn into(self) -> call_out::AmountCallOut<Args, crate::args::Json> {
+        impl<X, MyType, Y> Into<call_out::AmountCallOut<Args<X, MyType, Y>, crate::args::Json>>
+            for AmountCallOut<X, MyType, Y>
+        {
+            fn into(self) -> call_out::AmountCallOut<Args<X, MyType, Y>, crate::args::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -243,39 +256,45 @@ pub mod ext_status_message_example {
 
         ///
         ///
-        /// (Original set_status1 documentation)
-        pub struct GasCallOut {
+        /// (Original method_a documentation)
+        pub struct GasCallOut<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
-            args: Args,
+            args: Args<X, MyType, Y>,
             send_amount: Balance,
             prepaid_gas: Gas,
         }
 
-        impl GasCallOut {
+        impl<X, MyType, Y> GasCallOut<X, MyType, Y>
+        where
+            Args<X, MyType, Y>: crate::args::ToBytes<crate::args::Json>,
+        {
             ///
             ///
-            /// (Original set_status1 documentation)
+            /// (Original method_a documentation)
             pub fn call_out(self) {
                 use crate::args::ToBytes;
                 near_sdk::Promise::new(self.contract_being_called).function_call(
                     self.method_name.to_string(),
-                    self.args
-                        .to_bytes()
+                    ToBytes::to_bytes(&self.args)
                         .expect("Failed to serialize the cross contract args."),
                     self.send_amount,
                     self.prepaid_gas,
                 );
             }
 
-            pub fn into_generic(self) -> call_out::GasCallOut<Args, crate::args::Json> {
+            pub fn into_generic(
+                self,
+            ) -> call_out::GasCallOut<Args<X, MyType, Y>, crate::args::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::GasCallOut<Args, crate::args::Json>> for GasCallOut {
-            fn into(self) -> call_out::GasCallOut<Args, crate::args::Json> {
+        impl<X, MyType, Y> Into<call_out::GasCallOut<Args<X, MyType, Y>, crate::args::Json>>
+            for GasCallOut<X, MyType, Y>
+        {
+            fn into(self) -> call_out::GasCallOut<Args<X, MyType, Y>, crate::args::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)

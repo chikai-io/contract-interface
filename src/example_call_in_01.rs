@@ -8,8 +8,8 @@ use near_sdk::{
 };
 
 // #[CalledIn]
-/// (Original Message documentation)
-pub trait Message {
+/// (Original Trait documentation)
+pub trait Trait {
     /// (Original method_a documentation)
     fn method_a(&mut self, my_string: String);
 
@@ -19,8 +19,8 @@ pub trait Message {
 // created by macro
 ///
 ///
-/// (Original Message documentation)
-pub mod message_concrete {
+/// (Original Trait documentation)
+pub mod _trait {
     ///
     ///
     /// (Original method_a documentation)
@@ -86,10 +86,10 @@ pub mod message_concrete {
 }
 
 // specific
-/// (Original Abc documentation)
+/// (Original Struct documentation)
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Abc {
+pub struct Struct {
     a: u8,
     b: u16,
     c: u32,
@@ -97,7 +97,7 @@ pub struct Abc {
 
 // specific (where the CalledIn "derive" must happen)
 // #[CalledIn]
-impl Message for Abc {
+impl Trait for Struct {
     fn method_a(&mut self, _my_string: String) {
         todo!()
     }
@@ -106,30 +106,30 @@ impl Message for Abc {
     }
 }
 // created by macro
-impl CalledIn<crate::args::Json, crate::args::Json> for message_concrete::method_a::CalledIn<Abc> {
-    type State = Abc;
-    type Args = message_concrete::method_a::Args;
-    type Return = message_concrete::method_a::Return;
+impl CalledIn<crate::args::Json, crate::args::Json> for _trait::method_a::CalledIn<Struct> {
+    type State = Struct;
+    type Args = _trait::method_a::Args;
+    type Return = _trait::method_a::Return;
     type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
     fn exposed_called_in() {
         let method_wrapper = |state: &mut Self::State, args: Self::Args| {
-            let () = <Self::State as Message>::method_a(state, args.my_string);
+            let () = <Self::State as Trait>::method_a(state, args.my_string);
             None
         };
         Self::called_in(method_wrapper);
     }
 }
 // created by macro
-impl CalledIn<crate::args::Json, crate::args::Json> for message_concrete::method_b::CalledIn<Abc> {
-    type State = Abc;
-    type Args = message_concrete::method_b::Args;
-    type Return = message_concrete::method_b::Return;
+impl CalledIn<crate::args::Json, crate::args::Json> for _trait::method_b::CalledIn<Struct> {
+    type State = Struct;
+    type Args = _trait::method_b::Args;
+    type Return = _trait::method_b::Return;
     type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
     fn exposed_called_in() {
         let method_wrapper = |state: &mut Self::State, args: Self::Args| {
-            let res = <Self::State as Message>::method_b(state, args.my_string, args.my_bool);
+            let res = <Self::State as Trait>::method_b(state, args.my_string, args.my_bool);
             Some(res)
         };
         Self::called_in(method_wrapper);
@@ -141,7 +141,7 @@ impl CalledIn<crate::args::Json, crate::args::Json> for message_concrete::method
 #[no_mangle]
 pub extern "C" fn method_a() {
     #[allow(unused_imports)]
-    message_concrete::method_a::CalledIn::<Abc>::exposed_called_in()
+    _trait::method_a::CalledIn::<Struct>::exposed_called_in()
 }
 
 // must be created by macro (or by hand)
@@ -149,5 +149,5 @@ pub extern "C" fn method_a() {
 #[no_mangle]
 pub extern "C" fn method_b() {
     #[allow(unused_imports)]
-    message_concrete::method_b::CalledIn::<Abc>::exposed_called_in()
+    _trait::method_b::CalledIn::<Struct>::exposed_called_in()
 }
