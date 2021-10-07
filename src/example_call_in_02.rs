@@ -14,22 +14,31 @@ use near_sdk::{
 pub mod arbitrary_mod {
     // #[CalledIn]
     /// (Original Trait documentation)
-    pub trait Trait<'a, M: std::fmt::Debug> {
-        type MyTypeA: Clone;
-        type MyTypeB;
+    pub trait Trait< // 
+        'trait_lt, 
+        TraitType: std::fmt::Debug, 
+        const TRAIT_CONST: bool
+    >: Clone {
+        const TRAIT_INTERNAL_CONST: bool;
+        type TraitInternalTypeA: Clone;
+        type TraitInternalTypeB;
 
         /// (Original method_a documentation)
-        fn method_a<'b, Y, Z>(
+        fn method_a< //
+            'method_lt, 
+            MethodTypeA, 
+            MethodTypeB
+        >(
             &mut self,
             _my_string: String,
-            _my_m: M,
-            (_my_y, _my_bool): (Y, bool),
-            _my_y2: &'b Y,
-            _my_type_a: Self::MyTypeA,
-        ) -> Z
+            _my_m: TraitType,
+            (_my_y, _my_bool): (MethodTypeA, bool),
+            _my_y2: &'method_lt MethodTypeA,
+            _my_type_a: Self::TraitInternalTypeA,
+        ) -> MethodTypeB
         where
-            M: 'a,
-            Y: Default,
+            TraitType: 'trait_lt,
+            MethodTypeA: Default,
         {
             todo!()
         }
@@ -53,15 +62,20 @@ pub mod arbitrary_mod {
             /// (Original method_a documentation)
             #[derive(Deserialize)]
             #[serde(crate = "near_sdk::serde")]
-            pub struct Args<'b, M, StateMyTypeA, Y>
+            pub struct Args< //
+                'method_lt, 
+                TraitType, 
+                StateMyTypeA, 
+                MethodTypeA
+            >
             where
-                &'b Y: near_sdk::serde::de::DeserializeOwned,
+                &'method_lt MethodTypeA: near_sdk::serde::de::DeserializeOwned,
             {
                 pub my_string: String,
-                pub my_m: M,
-                pub my_y: Y,
+                pub my_m: TraitType,
+                pub my_y: MethodTypeA,
                 pub my_bool: bool,
-                pub my_y2: &'b Y,
+                pub my_y2: &'method_lt MethodTypeA,
                 pub my_type_a: StateMyTypeA,
             }
 
@@ -73,11 +87,23 @@ pub mod arbitrary_mod {
             ///
             ///
             /// (Original method_a documentation)
-            pub struct CalledIn<'b, M, MyTypeA, MyTypeB, Y, Z, State> {
-                _trait_lifetimes: PhantomData<&'b ()>,
-                _trait_param: PhantomData<M>,
-                _types_param: (PhantomData<MyTypeA>, PhantomData<MyTypeB>),
-                _method_param: (PhantomData<Y>, PhantomData<Z>),
+            pub struct CalledIn< //
+                'method_lt,
+                TraitType,
+                TraitInternalTypeA,
+                TraitInternalTypeB,
+                MethodTypeA,
+                MethodTypeB,
+                State,
+                const TRAIT_CONST: bool,
+            > {
+                _trait_lifetimes: PhantomData<&'method_lt ()>,
+                _trait_param: PhantomData<TraitType>,
+                _types_param: (
+                    PhantomData<TraitInternalTypeA>,
+                    PhantomData<TraitInternalTypeB>,
+                ),
+                _method_param: (PhantomData<MethodTypeA>, PhantomData<MethodTypeB>),
                 _state_param: PhantomData<State>,
             }
         }
@@ -89,7 +115,7 @@ pub mod arbitrary_mod {
 #[near_bindgen]
 // TODO: PanicOnDefault doesn't work with generics
 // #[derive(PanicOnDefault)]
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(BorshDeserialize, BorshSerialize, Clone)]
 pub struct Struct<X> {
     a: u8,
     b: u16,
@@ -108,20 +134,35 @@ pub type TypeB = u64;
 
 // specific (where the CalledIn "derive" must happen)
 // #[CalledIn]
-impl<'a, X, M: std::fmt::Debug> arbitrary_mod::Trait<'a, M> for Struct<X> {
-    type MyTypeA = TypeA;
-    type MyTypeB = TypeB;
+impl< //
+    'trait_lt, 
+    X, 
+    TraitType: std::fmt::Debug, 
+    const TRAIT_CONST: bool
+>
+    arbitrary_mod::Trait<'trait_lt, TraitType, TRAIT_CONST> //
+    for Struct<X>
+where
+    Struct<X>: Clone,
+{
+    const TRAIT_INTERNAL_CONST: bool = true;
+    type TraitInternalTypeA = TypeA;
+    type TraitInternalTypeB = TypeB;
 
-    fn method_a<'b, Y, Z>(
+    fn method_a< //
+        'method_lt, 
+        MethodTypeA, 
+        MethodTypeB
+    >(
         &mut self,
         _my_string: String,
-        _my_m: M,
-        (_my_y, _my_bool): (Y, bool),
-        _my_y2: &'b Y,
-        _my_type_a: Self::MyTypeA,
-    ) -> Z
+        _my_m: TraitType,
+        (_my_y, _my_bool): (MethodTypeA, bool),
+        _my_y2: &'method_lt MethodTypeA,
+        _my_type_a: Self::TraitInternalTypeA,
+    ) -> MethodTypeB
     where
-        M: 'a,
+        TraitType: 'trait_lt,
     {
         todo!()
     }
@@ -129,34 +170,57 @@ impl<'a, X, M: std::fmt::Debug> arbitrary_mod::Trait<'a, M> for Struct<X> {
 // created by macro
 pub mod trait_method_a_impl {
     use super::*;
-    impl<'b, X, M, Y, Z> crate::interface::CalledIn<crate::args::Json, crate::args::Json>
-        for arbitrary_mod::_trait::method_a::CalledIn<'b, M, TypeA, TypeB, Y, Z, Struct<X>>
+    impl< //
+        'method_lt, 
+        X, 
+        TraitType, 
+        MethodTypeA, 
+        MethodTypeB, 
+        const TRAIT_CONST: bool
+    >
+        crate::interface::CalledIn<crate::args::Json, crate::args::Json>
+        for arbitrary_mod::_trait::method_a::CalledIn< //
+            'method_lt,
+            TraitType,
+            TypeA,
+            TypeB,
+            MethodTypeA,
+            MethodTypeB,
+            Struct<X>,
+            TRAIT_CONST,
+        >
     where
         // state
         X: near_sdk::borsh::BorshSerialize + near_sdk::borsh::BorshDeserialize + Default,
+        // Self bonds from trait
+        Struct<X>: Clone,
         // arg
-        M: near_sdk::serde::de::DeserializeOwned
+        TraitType: near_sdk::serde::de::DeserializeOwned
             // extra from the bound on trait definition
             + std::fmt::Debug,
         // arg
-        Y: near_sdk::serde::de::DeserializeOwned
+        MethodTypeA: near_sdk::serde::de::DeserializeOwned
             +
             // extra from the bound on method definition
             Default
-            // extra because of `&'b Y`
-            + 'b,
-        &'b Y: near_sdk::serde::de::DeserializeOwned,
+            // extra because of `&'method_lt MethodTypeA`
+            + 'method_lt,
+        &'method_lt MethodTypeA: near_sdk::serde::de::DeserializeOwned,
         // return
-        Z: near_sdk::serde::Serialize,
+        MethodTypeB: near_sdk::serde::Serialize,
     {
         type State = Struct<X>;
-        type Args = arbitrary_mod::_trait::method_a::Args<'b, M, TypeA, Y>;
-        type Return = arbitrary_mod::_trait::method_a::Return<Z>;
+        type Args =
+            arbitrary_mod::_trait::method_a::Args<'method_lt, TraitType, TypeA, MethodTypeA>;
+        type Return = arbitrary_mod::_trait::method_a::Return<MethodTypeB>;
         type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
         fn exposed_called_in() {
             let method_wrapper = |state: &mut Self::State, args: Self::Args| {
-                let res = <Self::State as arbitrary_mod::Trait<M>>::method_a::<Y, Z>(
+                let res = <Self::State as arbitrary_mod::Trait<TraitType, TRAIT_CONST>>::method_a::<
+                    MethodTypeA,
+                    MethodTypeB,
+                >(
                     state,
                     args.my_string,
                     args.my_m,
@@ -191,8 +255,16 @@ impl<'x, 'de> near_sdk::serde::de::Deserialize<'de> for &'x MyU8 {
 }
 
 // must be created by hand (struct and trait must be specialized)
-pub type A<'b> =
-    arbitrary_mod::_trait::method_a::CalledIn<'b, (), TypeA, TypeB, MyU8, bool, Struct<u16>>;
+pub type A<'method_lt> = arbitrary_mod::_trait::method_a::CalledIn< //
+    'method_lt,
+    (),
+    TypeA,
+    TypeB,
+    MyU8,
+    bool,
+    Struct<u16>,
+    true,
+>;
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn my_method_b_u16() {
