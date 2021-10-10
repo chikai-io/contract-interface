@@ -4,11 +4,23 @@
 use super::CalledIn;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    near_bindgen, PanicOnDefault,
+    called_in, near_bindgen, PanicOnDefault,
 };
 
 // #[CalledIn]
 /// (Original Trait documentation)
+#[called_in]
+pub trait Trait2<A> {
+    /// (Original method_a documentation)
+    fn method_a<B>(&mut self, my_a: A, my_b: B);
+}
+
+// #[called_in]
+// pub trait Trait2<T> {
+//     /// (Original method_a documentation)
+//     fn method_a<V>(&mut self, my_t: T, my_v: V);
+// }
+
 pub trait Trait {
     /// (Original method_a documentation)
     fn method_a(&mut self, my_string: String);
@@ -16,6 +28,7 @@ pub trait Trait {
     /// (Original method_b documentation)
     fn method_b(&mut self, my_string: String, my_bool: bool) -> bool;
 }
+
 // created by macro
 ///
 ///

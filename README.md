@@ -1,5 +1,7 @@
 # Near Contract Interface
 
+This is a sandbox project only used to experiment and guide development.
+
 ## Goal
 
 Exploration and research intending to enable usage of generic types and traits in contract usage/composition on the [NEAR](https://near.org/) ecossystem. 
@@ -27,7 +29,7 @@ One major feature for composability that currently exists in `near_sdk` is the u
 
 ## Defined Items
 
-This uses a distintic naming to differentiate contract method _callers_ from contract method _exposers._ Or _clients_ vs _servers._ Currently, structures that clients use are generally called `CallOut`, and those that servers use are called `CallIn`, but this could be improved.
+This uses a distintic naming to differentiate contract method _callers_ from contract method _exposers._ Or _clients_ vs _servers._ Or _requests_ vs _responses._ Currently, structures that clients use are generally called `CallOut`, and those that servers use are called `CallIn`, but this could be improved.
 
 Still on this subject of clients vs servers, it's worth clarifying how is the dataflow for each one's perspective.  
 The client doesn't directly communicate with the server contract, as they are different programs, instead it only communicates with the runtime. The only needed information are the server contract address/`AccountId`, it's _exposed_ methods' names and their arguments' values. Any state, and any trait definitions are unnecessary to the client, again, since it can't have direct contact with values related to that. (note: near-sdk's current macro behaviour, for the client, is to [erase](https://github.com/near/near-sdk-rs/issues/287) the trait definition since it's not required).  
@@ -47,16 +49,21 @@ When we implement `IFungibleToken` for `Root`, this is when (and the only time) 
 
 With that, the remaining part is actually creating the functions to be exported, and correctly point them to call a specific method from `IFungibleToken` of `Root`. As attributes must be placed above those functions, they must be inserted directly into the code, such as manually or via macros - they can't be created anywhere else.
 
+#### Macros
+
 One possibility is to leverage both the lensing and also the direct implementation of the trait on `Root`, and thus the `FungibleToken` crate itself could define a general macro, similarly on how it is done today. But it would never be necessary, for the `Pausable`'s code, to copy or modify that macro, nor for `Root`'s code to do so.  
 Today, that macro implements the trait on `Root`, and also manages the "accessing" of an inner field (that implements `IFungibleToken`), and also deals with function exporting. The new kind of macro would _not_ implement the trait _nor_ manually manage the access of the inner field (`Lens` already took care of that), it would only create the exported functions and redirect the call into a particular place. And also, those new macros (and also the generic implementation based on `Lens`) probably could be derived automatically on the traits definitions, and also automatically include various standardized options such as:
-- Change function naming (rename, pre/suffices)
-- Skip specific methods
-- Generate documentation or some helpers, with possibly:
+- Change exported function naming (rename, pre/suffices)
+- Skip exporting specific methods
+- Generate (or use specific, such as from files) documentation or some exported helpers, with possibly:
   - Optionally be exported as auxiliary methods 
   - Output information when a deserialization error occur
-    - Or when, say, a single specific argument, such as "help", is passed in, 
-    which could be byte-verified before the actual deserialization
+    - (which probably would be a reference into an off-chain resource?)
+    - Or when, say, a single specific argument, such as (bytes) "help", is passed in, 
+    which could be hardcoded byte-verified before the actual deserialization (which could forcefully fail with the information) - although this is dangerous because this could shadow genuine values
 - Produce methods that can output API documentation (when compiled normally, not as wasm)
+
+# Notes
 
 TODO: Decide if `Root` should implement `Lens<Root, T>`, or (preferably) if a different structure could do it.  
 TODO: Add another benefit os Lensing, is that if a type doesn't want to change the behaviour of an inner type, it can just lens into it and then it would 'inherit' it's behaviour - so the trait's methods would also be able to "bubble up" the composition stack.

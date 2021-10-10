@@ -69,7 +69,7 @@ checksum = "307f3740906bac2c118a8122fe22681232b244f1369273e45f1156b45c43d2dd"
 dependencies = [
  "borsh-derive-internal",
  "borsh-schema-derive-internal",
- "proc-macro-crate",
+ "proc-macro-crate 0.1.5",
  "proc-macro2",
  "syn",
 ]
@@ -245,8 +245,6 @@ checksum = "8452105ba047068f40ff7093dd1d9da90898e63dd61736462e9cdda6a90ad3c3"
 [[package]]
 name = "near-contract-standards"
 version = "4.0.0-pre.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0bedf701e9a9b3a2df683cb5b7360d95492e70239a380e1e604745d2290e65f"
 dependencies = [
  "near-sdk",
 ]
@@ -309,8 +307,6 @@ dependencies = [
 [[package]]
 name = "near-sdk"
 version = "4.0.0-pre.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab7fc853396919d12055cc4051c303758a75ebca74223f5c9e0907a549452cc3"
 dependencies = [
  "base64",
  "borsh",
@@ -327,10 +323,10 @@ dependencies = [
 [[package]]
 name = "near-sdk-macros"
 version = "4.0.0-pre.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44fcbacb1d2fedcb2e4aa05094d31ccbfa831c868ca1242d1345b3e45c6b8a6c"
 dependencies = [
  "Inflector",
+ "indexmap",
+ "proc-macro-crate 1.1.0",
  "proc-macro2",
  "quote",
  "syn",
@@ -339,8 +335,6 @@ dependencies = [
 [[package]]
 name = "near-sys"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6a7aa3f46fac44416d8a93d14f30a562c4d730a1c6bf14bffafab5f475c244a"
 
 [[package]]
 name = "near-vm-errors"
@@ -436,6 +430,16 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d6ea3c4595b96363c13943497db34af4460fb474a95c43f4446ad341b8c9785"
 dependencies = [
+ "toml",
+]
+
+[[package]]
+name = "proc-macro-crate"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ebace6889caf889b4d3f76becee12e90353f2b8c7d875534a71e5742f8f6f83"
+dependencies = [
+ "thiserror",
  "toml",
 ]
 
@@ -573,6 +577,26 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-xid",
+]
+
+[[package]]
+name = "thiserror"
+version = "1.0.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "602eca064b2d83369e2b2f34b09c70b605402801927c65c11071ac911d299b88"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bad553cc2c78e8de258400763a647e80e6d1b31ee237275d756f6836d204494c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

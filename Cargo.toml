@@ -12,3 +12,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 near-sdk = "4.0.0-pre.2"
 near-contract-standards = "4.0.0-pre.2"
+
+[patch.crates-io]
+near-sdk = { path = "../../near-sdk-rs/near-sdk/" }
+near-contract-standards = { path = "../../near-sdk-rs/near-contract-standards/" }

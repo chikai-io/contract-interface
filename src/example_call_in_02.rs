@@ -53,30 +53,39 @@ pub mod arbitrary_mod {
         ///
         ///
         /// (Original method_a documentation)
+        #[allow(non_camel_case_types)]
         pub mod method_a {
-            use near_sdk::serde::Deserialize;
-            use std::marker::PhantomData;
-
             ///
             ///
             /// (Original method_a documentation)
-            #[derive(Deserialize)]
+            #[derive(near_sdk::serde::Deserialize)]
             #[serde(crate = "near_sdk::serde")]
-            pub struct Args< //
+            pub struct 
+            Args< //
+                'trait_lt,
                 'method_lt, 
                 TraitType, 
-                StateMyTypeA, 
+                Self_TraitInternalTypeA, 
                 MethodTypeA
             >
             where
                 &'method_lt MethodTypeA: near_sdk::serde::de::DeserializeOwned,
+                TraitType: 'trait_lt,
+                MethodTypeA: Default,
             {
                 pub my_string: String,
                 pub my_m: TraitType,
                 pub my_y: MethodTypeA,
                 pub my_bool: bool,
                 pub my_y2: &'method_lt MethodTypeA,
-                pub my_type_a: StateMyTypeA,
+                pub my_type_a: Self_TraitInternalTypeA,
+                #[serde(skip)]
+                pub _phantom: ArgPhantom<'trait_lt>,
+            }
+
+            #[derive(Default)]
+            pub struct ArgPhantom<'trait_lt> {
+                _trait_lifetimes: (std::marker::PhantomData<&'trait_lt ()>,),
             }
 
             ///
@@ -88,23 +97,50 @@ pub mod arbitrary_mod {
             ///
             /// (Original method_a documentation)
             pub struct CalledIn< //
+                'trait_lt,
                 'method_lt,
                 TraitType,
-                TraitInternalTypeA,
-                TraitInternalTypeB,
+                Self_TraitInternalTypeA,
+                Self_TraitInternalTypeB,
                 MethodTypeA,
                 MethodTypeB,
                 State,
                 const TRAIT_CONST: bool,
             > {
-                _trait_lifetimes: PhantomData<&'method_lt ()>,
-                _trait_param: PhantomData<TraitType>,
-                _types_param: (
-                    PhantomData<TraitInternalTypeA>,
-                    PhantomData<TraitInternalTypeB>,
+                _state_param: (std::marker::PhantomData<State>,),
+                _other_param: StatelessCalledIn< // 
+                    'trait_lt,
+                    'method_lt,
+                    TraitType,
+                    Self_TraitInternalTypeA,
+                    Self_TraitInternalTypeB,
+                    MethodTypeA,
+                    MethodTypeB,
+                    TRAIT_CONST
+                >,
+            }
+
+            #[derive(Default)]
+            pub struct StatelessCalledIn< //
+                'trait_lt,
+                'method_lt,
+                TraitType,
+                Self_TraitInternalTypeA,
+                Self_TraitInternalTypeB,
+                MethodTypeA,
+                MethodTypeB,
+                const TRAIT_CONST: bool,
+            > {
+                _trait_lifetimes: (
+                    std::marker::PhantomData<&'trait_lt ()>,
+                    std::marker::PhantomData<&'method_lt ()>,
                 ),
-                _method_param: (PhantomData<MethodTypeA>, PhantomData<MethodTypeB>),
-                _state_param: PhantomData<State>,
+                _trait_param: (std::marker::PhantomData<TraitType>,),
+                _trait_types: (
+                    std::marker::PhantomData<Self_TraitInternalTypeA>,
+                    std::marker::PhantomData<Self_TraitInternalTypeB>,
+                ),
+                _method_param: (std::marker::PhantomData<MethodTypeA>, std::marker::PhantomData<MethodTypeB>),
             }
         }
     }
@@ -171,6 +207,7 @@ where
 pub mod trait_method_a_impl {
     use super::*;
     impl< //
+        'trait_lt,
         'method_lt, 
         X, 
         TraitType, 
@@ -180,6 +217,7 @@ pub mod trait_method_a_impl {
     >
         crate::interface::CalledIn<crate::args::Json, crate::args::Json>
         for arbitrary_mod::_trait::method_a::CalledIn< //
+            'trait_lt,
             'method_lt,
             TraitType,
             TypeA,
@@ -197,7 +235,10 @@ pub mod trait_method_a_impl {
         // arg
         TraitType: near_sdk::serde::de::DeserializeOwned
             // extra from the bound on trait definition
-            + std::fmt::Debug,
+            + std::fmt::Debug
+            // bound form method
+            + 'trait_lt
+            ,
         // arg
         MethodTypeA: near_sdk::serde::de::DeserializeOwned
             +
@@ -211,7 +252,7 @@ pub mod trait_method_a_impl {
     {
         type State = Struct<X>;
         type Args =
-            arbitrary_mod::_trait::method_a::Args<'method_lt, TraitType, TypeA, MethodTypeA>;
+            arbitrary_mod::_trait::method_a::Args<'trait_lt, 'method_lt, TraitType, TypeA, MethodTypeA>;
         type Return = arbitrary_mod::_trait::method_a::Return<MethodTypeB>;
         type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
@@ -255,7 +296,8 @@ impl<'x, 'de> near_sdk::serde::de::Deserialize<'de> for &'x MyU8 {
 }
 
 // must be created by hand (struct and trait must be specialized)
-pub type A<'method_lt> = arbitrary_mod::_trait::method_a::CalledIn< //
+pub type A<'trait_lt, 'method_lt> = arbitrary_mod::_trait::method_a::CalledIn< //
+    'trait_lt,
     'method_lt,
     (),
     TypeA,
