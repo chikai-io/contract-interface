@@ -55,6 +55,8 @@ pub mod arbitrary_mod {
         /// (Original method_a documentation)
         #[allow(non_camel_case_types)]
         pub mod method_a {
+            use std::marker::PhantomData;
+
             ///
             ///
             /// (Original method_a documentation)
@@ -64,6 +66,7 @@ pub mod arbitrary_mod {
             Args< //
                 'trait_lt,
                 'method_lt, 
+                _State,
                 TraitType, 
                 Self_TraitInternalTypeA, 
                 MethodTypeA
@@ -79,6 +82,8 @@ pub mod arbitrary_mod {
                 pub my_bool: bool,
                 pub my_y2: &'method_lt MethodTypeA,
                 pub my_type_a: Self_TraitInternalTypeA,
+                #[serde(skip)]
+                pub _state: PhantomData<_State>,
                 #[serde(skip)]
                 pub _phantom: ArgPhantom<'trait_lt>,
             }
@@ -252,7 +257,7 @@ pub mod trait_method_a_impl {
     {
         type State = Struct<X>;
         type Args =
-            arbitrary_mod::_trait::method_a::Args<'trait_lt, 'method_lt, TraitType, TypeA, MethodTypeA>;
+            arbitrary_mod::_trait::method_a::Args<'trait_lt, 'method_lt, Self::State, TraitType, TypeA, MethodTypeA>;
         type Return = arbitrary_mod::_trait::method_a::Return<MethodTypeB>;
         type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 

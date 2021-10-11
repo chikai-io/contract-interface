@@ -9,17 +9,43 @@ use near_sdk::{
 
 // #[CalledIn]
 /// (Original Trait documentation)
-#[called_in]
+// #[called_in]
 pub trait Trait2<A> {
     /// (Original method_a documentation)
     fn method_a<B>(&mut self, my_a: A, my_b: B);
 }
 
-// #[called_in]
-// pub trait Trait2<T> {
-//     /// (Original method_a documentation)
-//     fn method_a<V>(&mut self, my_t: T, my_v: V);
-// }
+#[called_in]
+pub trait Trait3< //
+        'trait_lt,
+        TraitType: std::fmt::Debug,
+        const TRAIT_CONST: bool
+>: Clone
+{
+    const TRAIT_INTERNAL_CONST: bool;
+    type TraitInternalTypeA: Clone + near_sdk::serde::de::DeserializeOwned;
+    type TraitInternalTypeB;
+
+    /// (Original method_a documentation)
+    fn method_a< //
+        'method_lt,
+        MethodTypeA,
+        MethodTypeB
+    >(
+        &mut self,
+        _my_string: String,
+        _my_m: TraitType,
+        // (_my_y, _my_bool): (MethodTypeA, bool),
+        // _my_y2: &'method_lt MethodTypeA,
+        _my_type_a: <Self as Trait3<'trait_lt, TraitType, TRAIT_CONST>>::TraitInternalTypeA,
+    ) -> MethodTypeB
+    where
+        TraitType: 'trait_lt,
+        MethodTypeA: Default,
+    {
+        todo!()
+    }
+}
 
 pub trait Trait {
     /// (Original method_a documentation)
@@ -46,8 +72,9 @@ pub mod _trait {
         /// (Original method_a documentation)
         #[derive(Deserialize)]
         #[serde(crate = "near_sdk::serde")]
-        pub struct Args {
+        pub struct Args<State> {
             pub my_string: String,
+            pub _state: PhantomData<State>,
         }
 
         ///
@@ -121,7 +148,7 @@ impl Trait for Struct {
 // created by macro
 impl CalledIn<crate::args::Json, crate::args::Json> for _trait::method_a::CalledIn<Struct> {
     type State = Struct;
-    type Args = _trait::method_a::Args;
+    type Args = _trait::method_a::Args<Self::State>;
     type Return = _trait::method_a::Return;
     type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
