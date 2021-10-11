@@ -1,6 +1,6 @@
 [package]
 name = "contract-interface"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Thiago Machado <thiago@keyko.io>"]
 edition = "2018"
 
@@ -13,6 +13,11 @@ crate-type = ["cdylib", "rlib"]
 near-sdk = "4.0.0-pre.2"
 near-contract-standards = "4.0.0-pre.2"
 
-[patch.crates-io]
-near-sdk = { path = "../../near-sdk-rs/near-sdk/" }
-near-contract-standards = { path = "../../near-sdk-rs/near-contract-standards/" }
+
+[dependencies.contract-interface-macros]
+version = "0.0.1"
+path = "contract-interface-macros"
+
+# [patch.crates-io]
+# near-sdk = { path = "../../near-sdk-rs/near-sdk/" }
+# near-contract-standards = { path = "../../near-sdk-rs/near-contract-standards/" }

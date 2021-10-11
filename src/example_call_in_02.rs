@@ -40,7 +40,7 @@ pub mod arbitrary_mod {
             TraitType: 'trait_lt,
             MethodTypeA: Default,
         {
-            todo!()
+            unimplemented!()
         }
     }
 
@@ -205,7 +205,7 @@ where
     where
         TraitType: 'trait_lt,
     {
-        todo!()
+        unimplemented!()
     }
 }
 // created by macro
@@ -288,7 +288,7 @@ impl<'de> near_sdk::serde::de::Deserialize<'de> for MyU8 {
     where
         D: near_sdk::serde::Deserializer<'de>,
     {
-        todo!()
+        unimplemented!()
     }
 }
 impl<'x, 'de> near_sdk::serde::de::Deserialize<'de> for &'x MyU8 {
@@ -296,7 +296,7 @@ impl<'x, 'de> near_sdk::serde::de::Deserialize<'de> for &'x MyU8 {
     where
         D: near_sdk::serde::Deserializer<'de>,
     {
-        todo!()
+        unimplemented!()
     }
 }
 

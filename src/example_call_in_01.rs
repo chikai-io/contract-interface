@@ -2,19 +2,13 @@
 //! (the consumer contracts still need to define their CallOut's)
 
 use super::CalledIn;
+use contract_interface_macros::called_in;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    called_in, near_bindgen, PanicOnDefault,
+    near_bindgen, PanicOnDefault,
 };
 
-// #[CalledIn]
-/// (Original Trait documentation)
-// #[called_in]
-pub trait Trait2<A> {
-    /// (Original method_a documentation)
-    fn method_a<B>(&mut self, my_a: A, my_b: B);
-}
-
+/// (Trait3 Doc)
 #[called_in]
 pub trait Trait3< //
         'trait_lt,
@@ -22,11 +16,16 @@ pub trait Trait3< //
         const TRAIT_CONST: bool
 >: Clone
 {
+    /// (TRAIT_INTERNAL_CONST Doc)
     const TRAIT_INTERNAL_CONST: bool;
+
+    /// (TraitInternalTypeA Doc)
     type TraitInternalTypeA: Clone + near_sdk::serde::de::DeserializeOwned;
+
+    /// (TraitInternalTypeB Doc)
     type TraitInternalTypeB;
 
-    /// (Original method_a documentation)
+    /// (method_a Doc)
     fn method_a< //
         'method_lt,
         MethodTypeA,
@@ -37,13 +36,16 @@ pub trait Trait3< //
         _my_m: TraitType,
         // (_my_y, _my_bool): (MethodTypeA, bool),
         // _my_y2: &'method_lt MethodTypeA,
+
+        // TODO: attribute to implicitly consider
+        // Self (aka. _State) as implementing the trait itself
         _my_type_a: <Self as Trait3<'trait_lt, TraitType, TRAIT_CONST>>::TraitInternalTypeA,
     ) -> MethodTypeB
     where
         TraitType: 'trait_lt,
         MethodTypeA: Default,
     {
-        todo!()
+        unimplemented!()
     }
 }
 
@@ -139,10 +141,10 @@ pub struct Struct {
 // #[CalledIn]
 impl Trait for Struct {
     fn method_a(&mut self, _my_string: String) {
-        todo!()
+        unimplemented!()
     }
     fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool {
-        todo!()
+        unimplemented!()
     }
 }
 // created by macro
