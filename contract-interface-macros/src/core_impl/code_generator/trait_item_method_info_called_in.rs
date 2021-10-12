@@ -11,37 +11,36 @@ use syn::{export::TokenStream2, Error};
 impl TraitItemMethodInfo {
     /// Generate code that wraps the method.
     pub fn method_wrapper(&self, trait_info: &ItemTraitInfo) -> Result<TokenStream2, Error> {
-        use quote::format_ident;
         let method_mod_name = &self.ident;
         let method_docs = &self.docs;
 
         //
 
-        let args_trait_lifetime_idents = trait_info.generic_lifetimes.keys().collect::<Vec<_>>();
-        let args_trait_lifetimes = trait_info.generic_lifetimes.values().collect::<Vec<_>>();
+        let args_trait_lifetime_idents = trait_info.generics.lifetimes.keys().collect::<Vec<_>>();
+        let args_trait_lifetimes = trait_info.generics.lifetimes.values().collect::<Vec<_>>();
 
-        let args_method_lifetime_idents = self.generic_lifetimes.keys().collect::<Vec<_>>();
-        let args_method_lifetimes = self.generic_lifetimes.values().collect::<Vec<_>>();
-
-        //
-
-        let args_trait_generic_type_idents = trait_info.generic_types.keys().collect::<Vec<_>>();
-        let args_trait_generic_types = trait_info.generic_types.values().collect::<Vec<_>>();
-
-        let args_method_generic_type_idents = self.generic_types.keys().collect::<Vec<_>>();
-        let args_method_generic_types = self.generic_types.values().collect::<Vec<_>>();
+        let args_method_lifetime_idents = self.generics.lifetimes.keys().collect::<Vec<_>>();
+        let args_method_lifetimes = self.generics.lifetimes.values().collect::<Vec<_>>();
 
         //
 
-        let args_trait_generic_const_idents = trait_info.generic_consts.keys().collect::<Vec<_>>();
-        let args_trait_generic_consts = trait_info.generic_consts.values().collect::<Vec<_>>();
+        let args_trait_generic_type_idents = trait_info.generics.types.keys().collect::<Vec<_>>();
+        let args_trait_generic_types = trait_info.generics.types.values().collect::<Vec<_>>();
+
+        let args_method_generic_type_idents = self.generics.types.keys().collect::<Vec<_>>();
+        let args_method_generic_types = self.generics.types.values().collect::<Vec<_>>();
 
         //
 
-        let args_method_generic_const_idents = self.generic_consts.keys().collect::<Vec<_>>();
-        let args_method_generic_consts = self.generic_consts.values().collect::<Vec<_>>();
+        let args_trait_generic_const_idents = trait_info.generics.consts.keys().collect::<Vec<_>>();
+        let args_trait_generic_consts = trait_info.generics.consts.values().collect::<Vec<_>>();
 
-        let args = &self.args;
+        //
+
+        let args_method_generic_const_idents = self.generics.consts.keys().collect::<Vec<_>>();
+        let args_method_generic_consts = self.generics.consts.values().collect::<Vec<_>>();
+
+        let args = &self.inputs.args;
 
         let self_lifetime_bounds = &trait_info.self_lifetime_bounds;
         let self_lifetime_bounds_q = if self_lifetime_bounds.is_empty() {
@@ -75,11 +74,16 @@ impl TraitItemMethodInfo {
             quote! {_State: #(#self_trait_bounds )+*,}
         };
 
-        let trait_lifetime_where_clauses = trait_info.lifetime_bounds.values().collect::<Vec<_>>();
-        let trait_type_where_clauses = trait_info.type_bounds.values().collect::<Vec<_>>();
+        let trait_lifetime_where_clauses = trait_info
+            .generics
+            .lifetime_bounds
+            .values()
+            .collect::<Vec<_>>();
+        let trait_type_where_clauses = trait_info.generics.type_bounds.values().collect::<Vec<_>>();
 
-        let method_lifetime_where_clauses = self.lifetime_bounds.values().collect::<Vec<_>>();
-        let method_type_where_clauses = self.lifetime_bounds.values().collect::<Vec<_>>();
+        let method_lifetime_where_clauses =
+            self.generics.lifetime_bounds.values().collect::<Vec<_>>();
+        let method_type_where_clauses = self.generics.lifetime_bounds.values().collect::<Vec<_>>();
 
         let where_clause = quote! {
             where

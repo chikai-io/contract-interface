@@ -1,4 +1,4 @@
-use crate::core_impl::info_extractor::item_trait_info::ItemTraitInfo;
+use crate::core_impl::info_extractor::item_trait_info_called_in::ItemTraitInfo;
 use quote::quote;
 use syn::export::TokenStream2;
 
@@ -6,14 +6,20 @@ impl ItemTraitInfo {
     /// Generate code that wrapps external calls.
     pub fn wrapped_module(&self) -> TokenStream2 {
         let mut result = TokenStream2::new();
-        for method in &self.methods {
-            result.extend(method.method_wrapper());
+        let original = &self.original;
+        for (ident, method) in &self.items.methods {
+            result.extend(method.method_wrapper(&self));
         }
-        let mod_name = &self.mod_name;
+        let trait_mod_name = &self.ident;
+        let trait_docs = &self.docs;
         quote! {
-           pub mod #mod_name {
+            #original
+
+            #(#[doc = #trait_docs])*
+            pub mod #trait_mod_name {
                 use super::*;
-                use near_sdk::{Gas, Balance, AccountId, Promise};
+
+                // use near_sdk::{Gas, Balance, AccountId, Promise};
                 #result
             }
         }

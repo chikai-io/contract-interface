@@ -36,16 +36,16 @@ pub fn near_bindgen(_attr: TokenStream, item: TokenStream) -> TokenStream {
             #generated_code
         })
     } else {
-        TokenStream::from(
-            syn::Error::new(
-                Span::call_site(),
-                "near_bindgen can only be used on type declarations and impl sections.",
-            )
-            .to_compile_error(),
+        syn::Error::new(
+            Span::call_site(),
+            "near_bindgen can only be used on type declarations and impl sections.",
         )
+        .to_compile_error()
+        .into()
     }
 }
 
+/*
 #[proc_macro_attribute]
 pub fn ext_contract(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Ok(mut input) = syn::parse::<ItemTrait>(item) {
@@ -78,41 +78,49 @@ pub fn ext_contract(attr: TokenStream, item: TokenStream) -> TokenStream {
         )
     }
 }
+*/
 
 #[proc_macro_attribute]
-pub fn called_in(attr: TokenStream, item: TokenStream) -> TokenStream {
-    if let Ok(mut input) = syn::parse::<ItemTrait>(item) {
-        let mod_name: Option<proc_macro2::Ident> = if attr.is_empty() {
-            None
-        } else {
-            match syn::parse(attr) {
+pub fn called_in(_attr: TokenStream, item: TokenStream) -> TokenStream {
+    // attached on `trait Trait {}`
+    if let Ok(item_trait) = syn::parse::<ItemTrait>(item.clone()) {
+        let item_trait_info =
+            match info_extractor::item_trait_info_called_in::ItemTraitInfo::new(&item_trait) {
+                Ok(x) => x,
+                Err(err) => return TokenStream::from(err.to_compile_error()),
+            };
+        item_trait_info.wrapped_module().into()
+    }
+    // attached on `impl Trait for Struct {}`
+    else if let Ok(item_impl) = syn::parse::<ItemImpl>(item) {
+        let item_impl_info =
+            match info_extractor::item_impl_info_called_in::ItemImplInfo::new(&item_impl) {
                 Ok(x) => x,
                 Err(err) => {
-                    return TokenStream::from(
-                        syn::Error::new(
-                            Span::call_site(),
-                            format!("Failed to parse mod name for called_in: {}", err),
-                        )
-                        .to_compile_error(),
-                    )
+                    return err.to_compile_error().into();
                 }
-            }
-        };
-        let item_trait_info = match info_extractor::item_trait_info_called_in::ItemTraitInfo::new(
-            &mut input, mod_name,
-        ) {
-            Ok(x) => x,
-            Err(err) => return TokenStream::from(err.to_compile_error()),
-        };
-        item_trait_info.wrapped_module().into()
-    } else {
-        TokenStream::from(
-            syn::Error::new(Span::call_site(), "called_in can only be used on traits")
-                .to_compile_error(),
+            };
+        let generated_code = item_impl_info.wrapper_code();
+        // Add helper type for simulation testing only if not wasm32
+        let marshalled_code = item_impl_info.marshall_code();
+        TokenStream::from(quote! {
+            #marshalled_code
+            #item_impl
+            #generated_code
+        })
+    }
+    // invalid attribute attachment
+    else {
+        syn::Error::new(
+            Span::call_site(),
+            "`called_in` can only be used on trait definitions or on it's implementations",
         )
+        .to_compile_error()
+        .into()
     }
 }
 
+/*
 #[proc_macro_attribute]
 pub fn call_out(attr: TokenStream, item: TokenStream) -> TokenStream {
     if let Ok(mut input) = syn::parse::<ItemTrait>(item) {
@@ -145,39 +153,51 @@ pub fn call_out(attr: TokenStream, item: TokenStream) -> TokenStream {
         )
     }
 }
+*/
 
 // The below attributes a marker-attributes and therefore they are no-op.
 
+/*
 /// `callback` is a marker attribute it does not generate code by itself.
 #[proc_macro_attribute]
 pub fn callback(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
+*/
 
+/*
 /// `callback_args_vec` is a marker attribute it does not generate code by itself.
 #[proc_macro_attribute]
 pub fn callback_vec(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
+*/
 
+/*
 /// `serializer` is a marker attribute it does not generate code by itself.
 #[proc_macro_attribute]
 pub fn serializer(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
+*/
 
+/*
 /// `result_serializer` is a marker attribute it does not generate code by itself.
 #[proc_macro_attribute]
 pub fn result_serializer(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
+*/
 
+/*
 /// `init` is a marker attribute it does not generate code by itself.
 #[proc_macro_attribute]
 pub fn init(_attr: TokenStream, item: TokenStream) -> TokenStream {
     item
 }
+*/
 
+/*
 /// `metadata` generates the metadata method and should be placed at the very end of the `lib.rs` file.
 // TODO: Once Rust allows inner attributes and custom procedural macros for modules we should switch this
 // to be `#![metadata]` attribute at the top of the contract file instead. https://github.com/rust-lang/rust/issues/54727
@@ -204,7 +224,9 @@ pub fn metadata(item: TokenStream) -> TokenStream {
         )
     }
 }
+*/
 
+/*
 /// `PanicOnDefault` generates implementation for `Default` trait that panics with the following
 /// message `The contract is not initialized` when `default()` is called.
 /// This is a helpful macro in case the contract is required to be initialized with either `init` or
@@ -230,7 +252,9 @@ pub fn derive_no_default(item: TokenStream) -> TokenStream {
         )
     }
 }
+*/
 
+/*
 /// `BorshStorageKey` generates implementation for `BorshIntoStorageKey` trait.
 /// It allows the type to be passed as a unique prefix for persistent collections.
 /// The type should also implement or derive `BorshSerialize` trait.
@@ -253,6 +277,7 @@ pub fn borsh_storage_key(item: TokenStream) -> TokenStream {
         impl near_sdk::BorshIntoStorageKey for #name {}
     })
 }
+*/
 
 fn crate_name(name: &str) -> Result<syn::Ident, syn::Error> {
     use proc_macro_crate::FoundCrate;

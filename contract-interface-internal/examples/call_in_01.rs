@@ -176,6 +176,7 @@ pub struct Struct {
 
 // specific (where the CalledIn "derive" must happen)
 // #[CalledIn]
+/// (Trait impl Doc)
 impl Trait for Struct {
     fn method_a(&mut self, _my_string: String) {
         unimplemented!()
@@ -218,7 +219,7 @@ impl CalledIn<interface::Json, interface::Json> for _trait::method_b::CalledIn<S
 // must be created by macro (or by hand)
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-pub extern "C" fn method_a() {
+pub extern "C" fn method_a_manual() {
     #[allow(unused_imports)]
     _trait::method_a::CalledIn::<Struct>::exposed_called_in()
 }
@@ -226,7 +227,26 @@ pub extern "C" fn method_a() {
 // must be created by macro (or by hand)
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
-pub extern "C" fn method_b() {
+pub extern "C" fn method_b_manual() {
     #[allow(unused_imports)]
     _trait::method_b::CalledIn::<Struct>::exposed_called_in()
+}
+
+/// (Original Struct documentation)
+#[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+pub struct Struct2 {
+    a: u8,
+    b: u16,
+    c: u32,
+}
+
+#[near_bindgen]
+impl Trait for Struct2 {
+    fn method_a(&mut self, _my_string: String) {
+        unimplemented!()
+    }
+    fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool {
+        unimplemented!()
+    }
 }
