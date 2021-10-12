@@ -1,5 +1,6 @@
 //! Example of calling an external contract.
 
+use contract_interface_internal as interface;
 use near_sdk::ext_contract;
 use near_sdk::serde::{Deserialize, Serialize};
 
@@ -29,9 +30,9 @@ pub fn example() {
     // );
 
     // generic builder
-    crate::CallOut::contract("my.contract".parse().unwrap())
+    interface::CallOut::contract("my.contract".parse().unwrap())
         .method(String::from("set_status1"))
-        .args(crate::args::json::named::NamedJson1::new(
+        .args(interface::json::named::NamedJson1::new(
             String::from("message"),
             String::from("my_value"),
         ))
@@ -61,7 +62,8 @@ pub mod _trait {
     ///
     /// (Original method_a documentation)
     pub mod method_a {
-        use crate::interface::call_out;
+        use contract_interface_internal as interface;
+        use interface::call_out;
         use near_sdk::serde::{Deserialize, Serialize};
         use near_sdk::{AccountId, Balance, Gas};
 
@@ -195,16 +197,16 @@ pub mod _trait {
 
             pub fn into_generic(
                 self,
-            ) -> call_out::ArgsCallOut<Args<X, MyType, Y>, crate::args::Json> {
+            ) -> call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl<X, MyType, Y> Into<call_out::ArgsCallOut<Args<X, MyType, Y>, crate::args::Json>>
+        impl<X, MyType, Y> Into<call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json>>
             for ArgsCallOut<X, MyType, Y>
         {
-            fn into(self) -> call_out::ArgsCallOut<Args<X, MyType, Y>, crate::args::Json> {
+            fn into(self) -> call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -237,16 +239,16 @@ pub mod _trait {
 
             pub fn into_generic(
                 self,
-            ) -> call_out::AmountCallOut<Args<X, MyType, Y>, crate::args::Json> {
+            ) -> call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl<X, MyType, Y> Into<call_out::AmountCallOut<Args<X, MyType, Y>, crate::args::Json>>
+        impl<X, MyType, Y> Into<call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json>>
             for AmountCallOut<X, MyType, Y>
         {
-            fn into(self) -> call_out::AmountCallOut<Args<X, MyType, Y>, crate::args::Json> {
+            fn into(self) -> call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -267,13 +269,13 @@ pub mod _trait {
 
         impl<X, MyType, Y> GasCallOut<X, MyType, Y>
         where
-            Args<X, MyType, Y>: crate::args::ToBytes<crate::args::Json>,
+            Args<X, MyType, Y>: interface::ToBytes<interface::Json>,
         {
             ///
             ///
             /// (Original method_a documentation)
             pub fn call_out(self) {
-                use crate::args::ToBytes;
+                use interface::ToBytes;
                 near_sdk::Promise::new(self.contract_being_called).function_call(
                     self.method_name.to_string(),
                     ToBytes::to_bytes(&self.args)
@@ -283,18 +285,16 @@ pub mod _trait {
                 );
             }
 
-            pub fn into_generic(
-                self,
-            ) -> call_out::GasCallOut<Args<X, MyType, Y>, crate::args::Json> {
+            pub fn into_generic(self) -> call_out::GasCallOut<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl<X, MyType, Y> Into<call_out::GasCallOut<Args<X, MyType, Y>, crate::args::Json>>
+        impl<X, MyType, Y> Into<call_out::GasCallOut<Args<X, MyType, Y>, interface::Json>>
             for GasCallOut<X, MyType, Y>
         {
-            fn into(self) -> call_out::GasCallOut<Args<X, MyType, Y>, crate::args::Json> {
+            fn into(self) -> call_out::GasCallOut<Args<X, MyType, Y>, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)

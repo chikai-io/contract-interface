@@ -1,8 +1,8 @@
 //! Example of defining an contract to be called by consumer contracts.
 //! (the consumer contracts still need to define their CallOut's)
 
-use super::CalledIn;
-use contract_interface_macros::called_in;
+use contract_interface_internal as interface;
+use interface::{called_in, CalledIn};
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     near_bindgen, PanicOnDefault,
@@ -39,14 +39,51 @@ pub trait Trait3< //
 
         // TODO: attribute to implicitly consider
         // Self (aka. _State) as implementing the trait itself
-        _my_type_a: <Self as Trait3<'trait_lt, TraitType, TRAIT_CONST>>::TraitInternalTypeA,
+        _my_type_a: Self::TraitInternalTypeA,
     ) -> MethodTypeB
     where
+        Self: Trait3<'trait_lt, TraitType, TRAIT_CONST>,
         TraitType: 'trait_lt,
         MethodTypeA: Default,
     {
         unimplemented!()
     }
+}
+
+#[called_in]
+pub trait Trait4 {
+    fn method_a(&mut self, my_bool: bool) {
+        unimplemented!()
+    }
+}
+
+// #[called_in]
+impl Trait4 for Struct {
+    fn method_a(&mut self, _my_bool: bool) {
+        unimplemented!()
+    }
+}
+//
+impl CalledIn<interface::Json, interface::Json> for trait_4::method_a::CalledIn<Struct> {
+    type State = Struct;
+    type Args = trait_4::method_a::Args<Self::State>;
+    type Return = trait_4::method_a::Return<()>;
+    type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
+
+    fn exposed_called_in() {
+        let method_wrapper = |state: &mut Self::State, args: Self::Args| {
+            let () = <Self::State as Trait4>::method_a(state, args.my_bool);
+            None
+        };
+        Self::called_in(method_wrapper);
+    }
+}
+//
+#[no_mangle]
+#[allow(unused_imports)]
+pub extern "C" fn my_exported_method() {
+    pub type Trait4Exported = trait_4::method_a::CalledIn<Struct>;
+    Trait4Exported::exposed_called_in()
 }
 
 pub trait Trait {
@@ -148,7 +185,7 @@ impl Trait for Struct {
     }
 }
 // created by macro
-impl CalledIn<crate::args::Json, crate::args::Json> for _trait::method_a::CalledIn<Struct> {
+impl CalledIn<interface::Json, interface::Json> for _trait::method_a::CalledIn<Struct> {
     type State = Struct;
     type Args = _trait::method_a::Args<Self::State>;
     type Return = _trait::method_a::Return;
@@ -163,7 +200,7 @@ impl CalledIn<crate::args::Json, crate::args::Json> for _trait::method_a::Called
     }
 }
 // created by macro
-impl CalledIn<crate::args::Json, crate::args::Json> for _trait::method_b::CalledIn<Struct> {
+impl CalledIn<interface::Json, interface::Json> for _trait::method_b::CalledIn<Struct> {
     type State = Struct;
     type Args = _trait::method_b::Args;
     type Return = _trait::method_b::Return;

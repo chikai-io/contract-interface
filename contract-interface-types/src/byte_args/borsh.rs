@@ -1,4 +1,4 @@
-use crate::args::{FromBytes, ToBytes};
+use crate::byte_args::{FromBytes, ToBytes};
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 
 pub struct Borsh;

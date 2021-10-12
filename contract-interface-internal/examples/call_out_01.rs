@@ -1,5 +1,7 @@
 //! Example of calling an external contract.
 
+use contract_interface_internal as interface;
+
 use near_sdk::{ext_contract, AccountId as AccId};
 
 /// (Original TraitA documentation)
@@ -29,9 +31,9 @@ pub fn example() {
     );
 
     // generic builder
-    crate::CallOut::contract("my.contract".parse().unwrap())
+    interface::CallOut::contract("my.contract".parse().unwrap())
         .method(String::from("method_a"))
-        .args(crate::args::json::named::NamedJson1::new(
+        .args(interface::json::named::NamedJson1::new(
             String::from("my_string"),
             String::from("my_value"),
         ))
@@ -75,7 +77,8 @@ pub mod _trait_a {
     ///
     /// (Original method_a documentation)
     pub mod method_a {
-        use crate::interface::call_out;
+        use contract_interface_internal as interface;
+        use interface::call_out;
         use near_sdk::serde::{Deserialize, Serialize};
         use near_sdk::{AccountId, Balance, Gas};
 
@@ -189,14 +192,14 @@ pub mod _trait_a {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::ArgsCallOut<Args, crate::args::Json> {
+            pub fn into_generic(self) -> call_out::ArgsCallOut<Args, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::ArgsCallOut<Args, crate::args::Json>> for ArgsCallOut {
-            fn into(self) -> call_out::ArgsCallOut<Args, crate::args::Json> {
+        impl Into<call_out::ArgsCallOut<Args, interface::Json>> for ArgsCallOut {
+            fn into(self) -> call_out::ArgsCallOut<Args, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -227,14 +230,14 @@ pub mod _trait_a {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::AmountCallOut<Args, crate::args::Json> {
+            pub fn into_generic(self) -> call_out::AmountCallOut<Args, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::AmountCallOut<Args, crate::args::Json>> for AmountCallOut {
-            fn into(self) -> call_out::AmountCallOut<Args, crate::args::Json> {
+        impl Into<call_out::AmountCallOut<Args, interface::Json>> for AmountCallOut {
+            fn into(self) -> call_out::AmountCallOut<Args, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -258,7 +261,7 @@ pub mod _trait_a {
             ///
             /// (Original method_a documentation)
             pub fn call_out(self) {
-                use crate::args::ToBytes;
+                use interface::ToBytes;
                 near_sdk::Promise::new(self.contract_being_called).function_call(
                     self.method_name.to_string(),
                     self.args
@@ -269,14 +272,14 @@ pub mod _trait_a {
                 );
             }
 
-            pub fn into_generic(self) -> call_out::GasCallOut<Args, crate::args::Json> {
+            pub fn into_generic(self) -> call_out::GasCallOut<Args, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::GasCallOut<Args, crate::args::Json>> for GasCallOut {
-            fn into(self) -> call_out::GasCallOut<Args, crate::args::Json> {
+        impl Into<call_out::GasCallOut<Args, interface::Json>> for GasCallOut {
+            fn into(self) -> call_out::GasCallOut<Args, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)

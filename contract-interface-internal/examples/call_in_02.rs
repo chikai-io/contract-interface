@@ -4,7 +4,8 @@
 //!
 //! (the consumer contracts still need to define their CallOut's)
 
-use super::CalledIn;
+use contract_interface_internal as interface;
+use interface::CalledIn;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     ext_contract, // PanicOnDefault,
@@ -220,7 +221,7 @@ pub mod trait_method_a_impl {
         MethodTypeB, 
         const TRAIT_CONST: bool
     >
-        crate::interface::CalledIn<crate::args::Json, crate::args::Json>
+        crate::CalledIn<interface::Json, interface::Json>
         for arbitrary_mod::_trait::method_a::CalledIn< //
             'trait_lt,
             'method_lt,

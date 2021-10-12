@@ -1,6 +1,5 @@
 pub use call_out::CallOut;
 
-// generic
 pub trait CalledIn<ArgsDeserialization, ReturnSerialization> {
     type State: near_sdk::borsh::BorshDeserialize + near_sdk::borsh::BorshSerialize + Default;
 
@@ -9,13 +8,12 @@ pub trait CalledIn<ArgsDeserialization, ReturnSerialization> {
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    type Args: crate::args::FromBytes<ArgsDeserialization>;
+    type Args: crate::FromBytes<ArgsDeserialization>;
 
-    type Return: crate::args::ToBytes<ReturnSerialization>;
+    type Return: crate::ToBytes<ReturnSerialization>;
 
     fn called_in(method: Self::Method) {
-        // use crate::args::ArgsSerDe;
-        use crate::args::ToBytes;
+        use crate::ToBytes;
 
         near_sdk::env::setup_panic_hook();
         if near_sdk::env::attached_deposit() != 0 {
@@ -24,7 +22,7 @@ pub trait CalledIn<ArgsDeserialization, ReturnSerialization> {
 
         let bytes = near_sdk::env::input().expect("Expected input since method has arguments.");
 
-        use crate::args::FromBytes;
+        use crate::FromBytes;
         let args = Self::Args::from_bytes(bytes.as_ref())
             .expect("Failed to deserialize the argument values");
 
@@ -162,7 +160,7 @@ pub mod call_out {
 
     impl<Args, ArgsSerialization> GasCallOut<Args, ArgsSerialization>
     where
-        Args: crate::args::ToBytes<ArgsSerialization>,
+        Args: crate::ToBytes<ArgsSerialization>,
     {
         pub fn new(
             amount_call: AmountCallOut<Args, ArgsSerialization>,
