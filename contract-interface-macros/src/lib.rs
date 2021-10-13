@@ -2,6 +2,7 @@
 extern crate proc_macro;
 
 mod core_impl;
+mod get_ident;
 mod replace_ident;
 
 use proc_macro::TokenStream;
@@ -104,9 +105,9 @@ pub fn called_in(_attr: TokenStream, item: TokenStream) -> TokenStream {
         // Add helper type for simulation testing only if not wasm32
         let marshalled_code = item_impl_info.marshall_code();
         TokenStream::from(quote! {
-            #marshalled_code
             #item_impl
             #generated_code
+            #marshalled_code
         })
     }
     // invalid attribute attachment

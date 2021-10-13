@@ -10,6 +10,10 @@ pub struct ItemImplInfo {
     /// The original AST.
     pub original: ItemImpl,
 
+    /// The struct name that will be used to generate the module.  
+    /// eg. `mod name`
+    pub ident: syn::Ident,
+
     /// The impl documentation.
     /// eg. `#[doc = "My Documentation"] impl Struct {}`
     pub docs: Vec<syn::Lit>,
@@ -104,21 +108,28 @@ impl ImplItems {
 
 impl ItemImplInfo {
     pub fn new(original: &ItemImpl) -> syn::Result<Self> {
+        let ident = {
+            use crate::get_ident::GetIdent;
+            original.self_ty.get_ident()
+        }
+        .expect("expecting mod name");
+
         let docs = attr_docs::parse_attr_docs(&original.attrs)?;
 
         let generics = Generics::replace_from_self_to_state(&original.generics);
 
         let self_ty = (*original.self_ty.as_ref()).clone();
-        let trait_path = original.trait_.map(|(_, p, _)| p);
+        let trait_path = original.trait_.as_ref().map(|(_, p, _)| p);
 
         let items = ImplItems::replace_from_self_to_state(&original.items)?;
 
         Ok(Self {
             original: original.clone(),
+            ident,
             self_ty,
             docs,
             generics,
-            trait_path,
+            trait_path: trait_path.cloned(),
             items,
         })
     }
