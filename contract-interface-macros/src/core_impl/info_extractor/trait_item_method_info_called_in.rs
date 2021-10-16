@@ -1,6 +1,7 @@
 use super::attr_docs;
 use super::inputs::Inputs;
 use super::item_generics::Generics;
+use crate::error;
 
 /// Information extracted from trait method.
 pub struct TraitItemMethodInfo {
@@ -28,7 +29,7 @@ pub struct TraitItemMethodInfo {
 }
 
 impl TraitItemMethodInfo {
-    pub fn new(original: &syn::TraitItemMethod) -> syn::Result<Self> {
+    pub fn new(original: &syn::TraitItemMethod) -> error::Result<Self> {
         let ident = original.sig.ident.clone();
 
         let docs = attr_docs::parse_attr_docs(&original.attrs)?;

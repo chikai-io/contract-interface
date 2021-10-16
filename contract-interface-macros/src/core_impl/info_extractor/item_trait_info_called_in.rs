@@ -1,7 +1,10 @@
 use super::attr_docs;
 use super::item_generics::Generics;
+use super::meta_attrs::meta_attrs;
 use super::trait_item_method_info_called_in::TraitItemMethodInfo;
+use crate::error;
 use crate::replace_ident::replace_ident_from_self_to_state;
+use darling::FromMeta;
 use inflector::Inflector;
 use syn::export::Span;
 
@@ -10,16 +13,12 @@ pub struct ItemTraitInfo {
     /// The original AST of the trait.
     pub original: syn::ItemTrait,
 
+    pub attrs: Attrs,
+    pub forward_attrs: Vec<syn::Attribute>,
+
     /// The trait name.  
     /// eg. `trait Name`
     pub original_ident: syn::Ident,
-
-    /// The trait name that will be used to generate the module.  
-    /// eg. `mod name`
-    pub ident: syn::Ident,
-    /// The trait documentation.
-    /// eg. `#[doc = "My Documentation"] trait Trait {}`
-    pub docs: Vec<syn::Lit>,
 
     /// The trait generics information.
     pub generics: Generics,
@@ -35,6 +34,19 @@ pub struct ItemTraitInfo {
     pub items: TraitItems,
 }
 
+#[derive(Debug, FromMeta)]
+pub struct RawAttrs {
+    #[darling(default, rename = "name")]
+    module_name: Option<syn::Ident>,
+}
+
+#[derive(Debug)]
+pub struct Attrs {
+    /// The trait name that will be used to generate the module.  
+    /// eg. `mod name {}`
+    pub module_name: syn::Ident,
+}
+
 pub struct TraitItems {
     /// The trait associated consts.  
     /// eg. `trait Trait {const T: u8}`.
@@ -48,7 +60,7 @@ pub struct TraitItems {
 }
 
 impl TraitItems {
-    pub fn replace_from_self_to_state(items: &[syn::TraitItem]) -> syn::Result<Self> {
+    pub fn replace_from_self_to_state(items: &[syn::TraitItem]) -> error::Result<Self> {
         let consts = items
             .iter()
             .filter_map(|item| {
@@ -106,7 +118,7 @@ impl TraitItems {
                 }
             })
             .map(|tim| Ok((tim.sig.ident.clone(), TraitItemMethodInfo::new(tim)?)))
-            .collect::<Result<_, syn::Error>>()?;
+            .collect::<Result<_, error::Error>>()?;
 
         Ok(Self {
             consts,
@@ -117,14 +129,21 @@ impl TraitItems {
 }
 
 impl ItemTraitInfo {
-    pub fn new(original: &syn::ItemTrait) -> syn::Result<Self> {
+    pub(crate) fn new(
+        original: &syn::ItemTrait,
+        attr_args: syn::AttributeArgs,
+    ) -> error::Result<Self> {
         let original_ident = original.ident.clone();
-        let ident = {
-            let res = original.ident.to_string().to_snake_case();
-            syn::Ident::new(&res, Span::call_site())
-        };
 
-        let docs = attr_docs::parse_attr_docs(&original.attrs)?;
+        let (raw_attrs, forward_attrs) =
+            meta_attrs::<RawAttrs>(&original.attrs, attr_args, "contract")?;
+
+        let attrs = Attrs {
+            module_name: raw_attrs.module_name.unwrap_or_else(|| {
+                let res = original.ident.to_string().to_snake_case();
+                syn::Ident::new(&res, Span::call_site())
+            }),
+        };
 
         let generics = Generics::replace_from_self_to_state(&original.generics);
 
@@ -159,9 +178,9 @@ impl ItemTraitInfo {
 
         Ok(Self {
             original_ident,
+            attrs,
+            forward_attrs,
             original: original.clone(),
-            ident,
-            docs,
             generics,
             self_lifetime_bounds,
             self_trait_bounds,

@@ -1,6 +1,7 @@
 pub(crate) mod attr_docs;
 pub(crate) mod inputs;
 pub(crate) mod item_generics;
+pub(crate) mod meta_attrs;
 
 pub(crate) mod serializer_attr;
 pub(crate) mod serializer_attr_called_in;

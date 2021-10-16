@@ -2,14 +2,14 @@
 //! (the consumer contracts still need to define their CallOut's)
 
 use contract_interface_internal as interface;
-use interface::{called_in, CalledIn};
+use interface::{contract, CalledIn};
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     near_bindgen, PanicOnDefault,
 };
 
 /// (Trait3 Doc)
-#[called_in]
+#[contract]
 pub trait Trait3< //
         'trait_lt,
         TraitType: std::fmt::Debug,
@@ -50,24 +50,26 @@ pub trait Trait3< //
     }
 }
 
-#[called_in]
+#[contract(name = "trait4")]
 pub trait Trait4 {
     fn method_a(&mut self, my_bool: bool) {
         unimplemented!()
     }
 }
 
-// #[called_in]
+#[contract(name = "struct_")]
 impl Trait4 for Struct {
     fn method_a(&mut self, _my_bool: bool) {
         unimplemented!()
     }
 }
+
+/*
 //
-impl CalledIn<interface::Json, interface::Json> for trait_4::method_a::CalledIn<Struct> {
+impl CalledIn<interface::Json, interface::Json> for trait4::method_a::CalledIn<Struct> {
     type State = Struct;
-    type Args = trait_4::method_a::Args<Self::State>;
-    type Return = trait_4::method_a::Return<()>;
+    type Args = trait4::method_a::Args<Self::State>;
+    type Return = trait4::method_a::Return<()>;
     type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
     fn exposed_called_in() {
@@ -82,9 +84,10 @@ impl CalledIn<interface::Json, interface::Json> for trait_4::method_a::CalledIn<
 #[no_mangle]
 #[allow(unused_imports)]
 pub extern "C" fn my_exported_method() {
-    pub type Trait4Exported = trait_4::method_a::CalledIn<Struct>;
+    pub type Trait4Exported = trait4::method_a::CalledIn<Struct>;
     Trait4Exported::exposed_called_in()
 }
+*/
 
 pub trait Trait {
     /// (Original method_a documentation)

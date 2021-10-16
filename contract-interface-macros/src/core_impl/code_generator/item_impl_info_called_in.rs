@@ -12,11 +12,11 @@ impl ItemImplInfo {
         }
 
         let original = &self.original;
-        let struct_mod_name = &self.ident;
-        let impl_docs = &self.docs;
+        let struct_mod_name = &self.attrs.module_name;
+        let forwarded_attrs = &self.forward_attrs;
 
         quote! {
-            #(#[doc = #impl_docs])*
+            #(#forwarded_attrs)*
             pub mod #struct_mod_name {
                 use super::*;
 

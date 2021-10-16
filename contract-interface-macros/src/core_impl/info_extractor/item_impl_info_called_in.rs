@@ -1,22 +1,20 @@
 use super::attr_docs;
 use super::impl_item_method_info_called_in::ImplItemMethodInfo;
 use super::item_generics::Generics;
+use super::meta_attrs::meta_attrs;
+use crate::error;
 use crate::replace_ident::replace_ident_from_self_to_state;
+use darling::FromMeta;
 use syn::spanned::Spanned;
-use syn::{Error, ImplItem, ItemImpl, Type};
+use syn::{ImplItem, ItemImpl, Type};
 
 /// Information extracted from `impl` section.
 pub struct ItemImplInfo {
     /// The original AST.
     pub original: ItemImpl,
 
-    /// The struct name that will be used to generate the module.  
-    /// eg. `mod name`
-    pub ident: syn::Ident,
-
-    /// The impl documentation.
-    /// eg. `#[doc = "My Documentation"] impl Struct {}`
-    pub docs: Vec<syn::Lit>,
+    pub attrs: Attrs,
+    pub forward_attrs: Vec<syn::Attribute>,
 
     /// The impl's generics information.
     pub generics: Generics,
@@ -32,6 +30,14 @@ pub struct ItemImplInfo {
     pub items: ImplItems,
 }
 
+#[derive(Debug, FromMeta)]
+pub struct Attrs {
+    /// The struct name that will be used to generate the module.  
+    /// eg. `mod name {}`
+    #[darling(rename = "name")]
+    pub module_name: syn::Ident,
+}
+
 pub struct ImplItems {
     /// The trait associated consts.  
     /// eg. `trait Trait {const T: u8}`.
@@ -45,7 +51,7 @@ pub struct ImplItems {
 }
 
 impl ImplItems {
-    pub fn replace_from_self_to_state(items: &[syn::ImplItem]) -> syn::Result<Self> {
+    pub fn replace_from_self_to_state(items: &[syn::ImplItem]) -> error::Result<Self> {
         let consts = items
             .iter()
             .filter_map(|item| {
@@ -63,7 +69,7 @@ impl ImplItems {
                     None
                 }
             })
-            .map(|tic| (tic.ident.clone(), tic.clone()))
+            .map(|tic| (tic.ident.clone(), tic))
             .collect();
 
         let types = items
@@ -96,7 +102,7 @@ impl ImplItems {
                 }
             })
             .map(|tim| Ok((tim.sig.ident.clone(), ImplItemMethodInfo::new(tim)?)))
-            .collect::<Result<_, syn::Error>>()?;
+            .collect::<Result<_, error::Error>>()?;
 
         Ok(Self {
             consts,
@@ -107,12 +113,8 @@ impl ImplItems {
 }
 
 impl ItemImplInfo {
-    pub fn new(original: &ItemImpl) -> syn::Result<Self> {
-        let ident = {
-            use crate::get_ident::GetIdent;
-            original.self_ty.get_ident()
-        }
-        .expect("expecting mod name");
+    pub(crate) fn new(original: &ItemImpl, attr_args: syn::AttributeArgs) -> error::Result<Self> {
+        let (attrs, forward_attrs) = meta_attrs::<Attrs>(&original.attrs, attr_args, "contract")?;
 
         let docs = attr_docs::parse_attr_docs(&original.attrs)?;
 
@@ -125,9 +127,9 @@ impl ItemImplInfo {
 
         Ok(Self {
             original: original.clone(),
-            ident,
+            attrs,
+            forward_attrs,
             self_ty,
-            docs,
             generics,
             trait_path: trait_path.cloned(),
             items,

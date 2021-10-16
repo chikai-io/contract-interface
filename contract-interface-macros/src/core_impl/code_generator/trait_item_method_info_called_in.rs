@@ -5,12 +5,13 @@ use crate::core_impl::{
         trait_item_method_info_called_in::TraitItemMethodInfo, InputStructType, SerializerType,
     },
 };
+use crate::error;
 use quote::quote;
-use syn::{export::TokenStream2, Error};
+use syn::export::TokenStream2;
 
 impl TraitItemMethodInfo {
     /// Generate code that wraps the method.
-    pub fn method_wrapper(&self, trait_info: &ItemTraitInfo) -> Result<TokenStream2, Error> {
+    pub fn method_wrapper(&self, trait_info: &ItemTraitInfo) -> error::Result<TokenStream2> {
         let method_mod_name = &self.ident;
         let method_docs = &self.docs;
 

@@ -7,15 +7,15 @@ impl ItemTraitInfo {
     pub fn wrapped_module(&self) -> TokenStream2 {
         let mut result = TokenStream2::new();
         let original = &self.original;
-        for (ident, method) in &self.items.methods {
-            result.extend(method.method_wrapper(&self));
+        for (_ident, method) in &self.items.methods {
+            result.extend(method.method_wrapper(self));
         }
-        let trait_mod_name = &self.ident;
-        let trait_docs = &self.docs;
+        let trait_mod_name = &self.attrs.module_name;
+        let trait_forwarded_attrs = &self.forward_attrs;
         quote! {
             #original
 
-            #(#[doc = #trait_docs])*
+            #(#trait_forwarded_attrs)*
             pub mod #trait_mod_name {
                 use super::*;
 

@@ -2,6 +2,7 @@ use super::attr_docs;
 use super::attr_sig_info_called_in::AttrSigInfo;
 use super::inputs::Inputs;
 use super::item_generics::Generics;
+use crate::error;
 
 /// Information extracted from `ImplItemMethod`.
 pub struct ImplItemMethodInfo {
@@ -29,7 +30,7 @@ pub struct ImplItemMethodInfo {
 
 impl ImplItemMethodInfo {
     /// Process the method and extract information important for near-sdk.
-    pub fn new(original: &syn::ImplItemMethod) -> syn::Result<Self> {
+    pub fn new(original: &syn::ImplItemMethod) -> error::Result<Self> {
         let ident = original.sig.ident.clone();
 
         let docs = attr_docs::parse_attr_docs(&original.attrs)?;
