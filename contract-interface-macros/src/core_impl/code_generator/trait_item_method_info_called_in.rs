@@ -12,8 +12,8 @@ use syn::export::TokenStream2;
 impl TraitItemMethodInfo {
     /// Generate code that wraps the method.
     pub fn method_wrapper(&self, trait_info: &ItemTraitInfo) -> error::Result<TokenStream2> {
-        let method_mod_name = &self.ident;
-        let method_docs = &self.docs;
+        let method_mod_name = &self.attrs.method_name;
+        let attr_docs = &self.doc_attrs;
 
         //
 
@@ -143,14 +143,13 @@ impl TraitItemMethodInfo {
 
         let q = Ok(quote! {
             #[allow(non_camel_case_types)]
-            #(#[doc = #method_docs])*
-            #[doc = "generated code here"]
+            #(#attr_docs)*
             pub mod #method_mod_name {
                 use #near_sdk as _near_sdk;
                 use std::marker::PhantomData;
                 use super::*;
 
-                #(#[doc = #method_docs])*
+                #(#attr_docs)*
                 #[derive(_near_sdk::serde::Deserialize)]
                 #[serde(crate = "_near_sdk::serde")]
                 pub struct
@@ -166,11 +165,11 @@ impl TraitItemMethodInfo {
                     >,
                 }
 
-                #(#[doc = #method_docs])*
+                #(#attr_docs)*
                 pub type Return<Z> = Z;
 
+                #(#attr_docs)*
                 #[derive(Default)]
-                #(#[doc = #method_docs])*
                 pub struct CalledIn< //
                     #args_generics_with_bounds
                 >

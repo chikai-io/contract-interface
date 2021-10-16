@@ -1,20 +1,18 @@
-use super::attr_docs;
 use super::attr_sig_info_called_in::AttrSigInfo;
 use super::inputs::Inputs;
 use super::item_generics::Generics;
+use super::meta_attrs;
 use crate::error;
+use darling::FromMeta;
 
 /// Information extracted from `ImplItemMethod`.
 pub struct ImplItemMethodInfo {
     /// The original AST of the impl item method.
     pub original: syn::ImplItemMethod,
 
-    /// Method name.
-    pub ident: syn::Ident,
-
-    /// The method documentation.
-    /// eg. `#[doc = "My Documentation"] fn f() {}`
-    pub docs: Vec<syn::Lit>,
+    pub attrs: Attrs,
+    pub doc_attrs: Vec<syn::Attribute>,
+    pub forward_attrs: Vec<syn::Attribute>,
 
     /// The method generics information.
     pub generics: Generics,
@@ -28,12 +26,34 @@ pub struct ImplItemMethodInfo {
     // pub struct_type: Type,
 }
 
+#[derive(Debug, FromMeta)]
+pub struct RawAttrs {
+    #[darling(default, rename = "name")]
+    module_name: Option<syn::Ident>,
+}
+
+#[derive(Debug)]
+pub struct Attrs {
+    /// The trait name that will be used to generate the module.  
+    /// eg. `mod name {}`
+    pub module_name: syn::Ident,
+}
+
 impl ImplItemMethodInfo {
     /// Process the method and extract information important for near-sdk.
     pub fn new(original: &syn::ImplItemMethod) -> error::Result<Self> {
         let ident = original.sig.ident.clone();
 
-        let docs = attr_docs::parse_attr_docs(&original.attrs)?;
+        let (raw_attrs, forward_attrs) =
+            meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, vec![], "contract")?;
+        let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
+
+        let attrs = Attrs {
+            module_name: raw_attrs.module_name.unwrap_or_else(|| {
+                let res = original.sig.ident.to_string();
+                syn::Ident::new(&res, syn::export::Span::call_site())
+            }),
+        };
 
         let generics = Generics::replace_from_self_to_state(&original.sig.generics);
 
@@ -45,8 +65,9 @@ impl ImplItemMethodInfo {
 
         Ok(Self {
             original: original.clone(),
-            ident,
-            docs,
+            attrs,
+            doc_attrs,
+            forward_attrs,
             generics,
             inputs,
             // args_sets,

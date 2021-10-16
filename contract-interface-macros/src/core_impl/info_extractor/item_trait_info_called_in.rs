@@ -1,12 +1,10 @@
-use super::attr_docs;
 use super::item_generics::Generics;
-use super::meta_attrs::meta_attrs;
+use super::meta_attrs;
 use super::trait_item_method_info_called_in::TraitItemMethodInfo;
 use crate::error;
 use crate::replace_ident::replace_ident_from_self_to_state;
 use darling::FromMeta;
 use inflector::Inflector;
-use syn::export::Span;
 
 /// Information extracted from `ItemTrait`.
 pub struct ItemTraitInfo {
@@ -14,6 +12,7 @@ pub struct ItemTraitInfo {
     pub original: syn::ItemTrait,
 
     pub attrs: Attrs,
+    pub doc_attrs: Vec<syn::Attribute>,
     pub forward_attrs: Vec<syn::Attribute>,
 
     /// The trait name.  
@@ -136,12 +135,13 @@ impl ItemTraitInfo {
         let original_ident = original.ident.clone();
 
         let (raw_attrs, forward_attrs) =
-            meta_attrs::<RawAttrs>(&original.attrs, attr_args, "contract")?;
+            meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, attr_args, "contract")?;
+        let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
 
         let attrs = Attrs {
             module_name: raw_attrs.module_name.unwrap_or_else(|| {
                 let res = original.ident.to_string().to_snake_case();
-                syn::Ident::new(&res, Span::call_site())
+                syn::Ident::new(&res, syn::export::Span::call_site())
             }),
         };
 
@@ -179,6 +179,7 @@ impl ItemTraitInfo {
         Ok(Self {
             original_ident,
             attrs,
+            doc_attrs,
             forward_attrs,
             original: original.clone(),
             generics,

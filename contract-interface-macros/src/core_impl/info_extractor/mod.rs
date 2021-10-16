@@ -1,4 +1,3 @@
-pub(crate) mod attr_docs;
 pub(crate) mod inputs;
 pub(crate) mod item_generics;
 pub(crate) mod meta_attrs;

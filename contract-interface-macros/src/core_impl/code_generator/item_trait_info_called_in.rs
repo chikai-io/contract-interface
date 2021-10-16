@@ -11,11 +11,11 @@ impl ItemTraitInfo {
             result.extend(method.method_wrapper(self));
         }
         let trait_mod_name = &self.attrs.module_name;
-        let trait_forwarded_attrs = &self.forward_attrs;
+        let trait_doc_attrs = &self.doc_attrs;
         quote! {
             #original
 
-            #(#trait_forwarded_attrs)*
+            #(#trait_doc_attrs)*
             pub mod #trait_mod_name {
                 use super::*;
 

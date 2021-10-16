@@ -7,25 +7,26 @@ pub fn meta_attrs<Arg: darling::FromMeta>(
     additional_attrs: Vec<syn::NestedMeta>,
     name: &str,
 ) -> error::Result<(Arg, Vec<syn::Attribute>)> {
-    let (attrs, forward_attrs) = internal_meta_attrs(attrs, name);
-    let mut attrs = attrs?;
+    let (attrs, forward_attrs) = partition_attrs(attrs, name);
+    let mut attrs = into_meta_attrs(attrs)?;
     attrs.extend(additional_attrs);
     Ok((Arg::from_list(&attrs)?, forward_attrs))
 }
 
-fn internal_meta_attrs(
+pub fn partition_attrs(
     attrs: &[syn::Attribute],
     name: &str,
-) -> (syn::Result<Vec<syn::NestedMeta>>, Vec<syn::Attribute>) {
+) -> (Vec<syn::Attribute>, Vec<syn::Attribute>) {
     let (correct_name, remaining): (Vec<_>, Vec<_>) = attrs
-        .into_iter()
+        .iter()
         .cloned()
         .partition(|attr| attr.path.is_ident(name));
+    (correct_name, remaining)
+}
 
-    let correct_name = correct_name
+fn into_meta_attrs(attrs: Vec<syn::Attribute>) -> syn::Result<Vec<syn::NestedMeta>> {
+    attrs
         .into_iter()
         .map(|a| a.parse_meta().map(syn::NestedMeta::from))
-        .collect::<Result<_, _>>();
-
-    (correct_name, remaining)
+        .collect::<Result<_, _>>()
 }

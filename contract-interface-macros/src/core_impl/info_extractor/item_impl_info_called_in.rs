@@ -1,19 +1,17 @@
-use super::attr_docs;
 use super::impl_item_method_info_called_in::ImplItemMethodInfo;
 use super::item_generics::Generics;
-use super::meta_attrs::meta_attrs;
+use super::meta_attrs;
 use crate::error;
 use crate::replace_ident::replace_ident_from_self_to_state;
 use darling::FromMeta;
-use syn::spanned::Spanned;
-use syn::{ImplItem, ItemImpl, Type};
 
 /// Information extracted from `impl` section.
 pub struct ItemImplInfo {
     /// The original AST.
-    pub original: ItemImpl,
+    pub original: syn::ItemImpl,
 
     pub attrs: Attrs,
+    pub doc_attrs: Vec<syn::Attribute>,
     pub forward_attrs: Vec<syn::Attribute>,
 
     /// The impl's generics information.
@@ -25,7 +23,7 @@ pub struct ItemImplInfo {
 
     /// The type for which this `impl` is written.
     /// eg. `impl Struct {}`
-    pub self_ty: Type,
+    pub self_ty: syn::Type,
 
     pub items: ImplItems,
 }
@@ -113,10 +111,13 @@ impl ImplItems {
 }
 
 impl ItemImplInfo {
-    pub(crate) fn new(original: &ItemImpl, attr_args: syn::AttributeArgs) -> error::Result<Self> {
-        let (attrs, forward_attrs) = meta_attrs::<Attrs>(&original.attrs, attr_args, "contract")?;
-
-        let docs = attr_docs::parse_attr_docs(&original.attrs)?;
+    pub(crate) fn new(
+        original: &syn::ItemImpl,
+        attr_args: syn::AttributeArgs,
+    ) -> error::Result<Self> {
+        let (attrs, forward_attrs) =
+            meta_attrs::meta_attrs::<Attrs>(&original.attrs, attr_args, "contract")?;
+        let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
 
         let generics = Generics::replace_from_self_to_state(&original.generics);
 
@@ -128,6 +129,7 @@ impl ItemImplInfo {
         Ok(Self {
             original: original.clone(),
             attrs,
+            doc_attrs,
             forward_attrs,
             self_ty,
             generics,
