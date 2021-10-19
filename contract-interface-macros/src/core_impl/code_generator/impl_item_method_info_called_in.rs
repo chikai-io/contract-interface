@@ -160,6 +160,13 @@ impl ImplItemMethodInfo {
             let trait_generic_types = impl_info.generics.types.values();
             let trait_generic_consts = impl_info.generics.consts.values();
 
+            let args_pats = self
+                .inputs
+                .args
+                .iter()
+                .map(|a| a.arg.pat.as_ref())
+                .collect::<Vec<_>>();
+
             quote! {
                 #[doc = #doc_generated]
                 #[doc = ""]
@@ -189,12 +196,11 @@ impl ImplItemMethodInfo {
                         type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
                         fn exposed_called_in() {
-                            todo!("method wrapper not yet implemented")
-                            // let method_wrapper = |state: &mut Self::State, args: Self::Args| {
-                            //     let () = <Self::State as Trait4>::method_a(state, args.my_bool);
-                            //     None
-                            // };
-                            // Self::called_in(method_wrapper);
+                            let method_wrapper = |state: &mut Self::State, args: Self::Args| {
+                                let () = <Self::State as #trait_path>::#original_method_ident(state, #(args.#args_pats),*);
+                                None
+                            };
+                            Self::called_in(method_wrapper);
                         }
                     }
                 }

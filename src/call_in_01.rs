@@ -59,7 +59,7 @@ TraitType: near_sdk::serde::de::DeserializeOwned + Sized
 /// (Trait4 Doc).
 #[contract(mod = "trait4")]
 pub trait Trait4 {
-    fn method_a(&mut self, my_bool: bool) {
+    fn method_a(&mut self, my_bool: bool) -> () {
         unimplemented!()
     }
 }
@@ -114,7 +114,7 @@ impl<
 #[contract(mod = "struct_", trait = "trait4")]
 impl Trait4 for Struct {
     /// (Impl method_a Doc).
-    fn method_a(&mut self, _my_bool: bool) {
+    fn method_a(&mut self, my_bool: bool) -> () {
         unimplemented!()
     }
 }
