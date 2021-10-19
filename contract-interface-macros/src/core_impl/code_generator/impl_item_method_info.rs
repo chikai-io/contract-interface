@@ -1,9 +1,9 @@
 use crate::core_impl::info_extractor::{
-    attr_sig_info_called_in::AttrSigInfo, impl_item_method_info_called_in::ImplItemMethodInfo,
-    InputStructType, MethodType, SerializerType,
+    attr_sig_info::AttrSigInfo, impl_item_method_info::ImplItemMethodInfo, InputStructType,
+    MethodType, SerializerType,
 };
 use crate::error;
-use crate::info_extractor::item_impl_info_called_in::ItemImplInfo;
+use crate::info_extractor::item_impl_info::ItemImplInfo;
 use quote::quote;
 use syn::export::TokenStream2;
 use syn::{ReturnType, Signature};

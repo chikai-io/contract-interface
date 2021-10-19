@@ -1,7 +1,7 @@
 use super::{
-    arg_info_called_in::{ArgInfo, BindgenArgType},
-    init_attr_called_in::InitAttr,
-    serializer_attr_called_in::SerializerAttr,
+    arg_info::{ArgInfo, BindgenArgType},
+    init_attr::InitAttr,
+    serializer_attr::SerializerAttr,
     MethodType, SerializerType,
 };
 use quote::ToTokens;

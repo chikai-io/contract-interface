@@ -1,6 +1,6 @@
 use super::item_generics::Generics;
 use super::meta_attrs;
-use super::trait_item_method_info_called_in::TraitItemMethodInfo;
+use super::trait_item_method_info::TraitItemMethodInfo;
 use crate::error;
 use crate::replace_ident::replace_ident_from_self_to_state;
 use darling::FromMeta;

@@ -1,5 +1,5 @@
 use crate::error;
-use crate::info_extractor::item_impl_info_called_in::ItemImplInfo;
+use crate::info_extractor::item_impl_info::ItemImplInfo;
 use quote::quote;
 use syn::export::TokenStream2;
 use syn::Ident;

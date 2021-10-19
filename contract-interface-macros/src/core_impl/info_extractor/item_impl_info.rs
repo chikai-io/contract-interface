@@ -1,4 +1,4 @@
-use super::impl_item_method_info_called_in::ImplItemMethodInfo;
+use super::impl_item_method_info::ImplItemMethodInfo;
 use super::item_generics::Generics;
 use super::meta_attrs;
 use crate::error;

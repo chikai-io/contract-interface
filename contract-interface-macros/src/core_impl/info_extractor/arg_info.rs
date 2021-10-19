@@ -1,4 +1,4 @@
-use super::serializer_attr_called_in::SerializerAttr;
+use super::serializer_attr::SerializerAttr;
 use super::SerializerType;
 use quote::ToTokens;
 use syn::export::Span;

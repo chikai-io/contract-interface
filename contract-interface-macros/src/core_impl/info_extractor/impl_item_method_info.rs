@@ -1,4 +1,4 @@
-use super::attr_sig_info_called_in::AttrSigInfo;
+use super::attr_sig_info::AttrSigInfo;
 use super::inputs::Inputs;
 use super::item_generics::Generics;
 use super::meta_attrs;
