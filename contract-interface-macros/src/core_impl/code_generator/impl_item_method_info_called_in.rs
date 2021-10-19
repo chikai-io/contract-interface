@@ -2,13 +2,210 @@ use crate::core_impl::info_extractor::{
     attr_sig_info_called_in::AttrSigInfo, impl_item_method_info_called_in::ImplItemMethodInfo,
     InputStructType, MethodType, SerializerType,
 };
+use crate::error;
+use crate::info_extractor::item_impl_info_called_in::ItemImplInfo;
 use quote::quote;
 use syn::export::TokenStream2;
 use syn::{ReturnType, Signature};
 
 impl ImplItemMethodInfo {
     /// Generate wrapper method for the given method of the contract.
-    pub fn method_wrapper(&self) -> TokenStream2 {
+    pub fn method_wrapper(
+        &self,
+        original_method_ident: &syn::Ident,
+        impl_info: &ItemImplInfo,
+    ) -> error::Result<TokenStream2> {
+        let internal_interface = crate::crate_name("contract-interface")?;
+
+        let self_ty = &impl_info.self_ty;
+
+        let doc_generated = if let Some(trait_path) = &impl_info.trait_path {
+            // https://github.com/rust-lang/rust/issues/74563
+            //
+            // TODO: currently it's not possible to link directly to
+            // the implementation's documentation itself, so both
+            // the trait and the struct are referred
+            format!(
+                " Generated code based on the implementation of [`{}::{}()`] for [`{}`].",
+                quote! {#trait_path},
+                quote! {#original_method_ident},
+                quote! {#self_ty}
+            )
+        } else {
+            format!(
+                " Generated code based on the implementation for [`{}::{}()`].",
+                quote! {#self_ty},
+                quote! {#original_method_ident},
+            )
+        };
+
+        // let mod_doc_msg = format!(
+        //     " Generated code based on [`{}::{}()`].",
+        //     &trait_info.original_ident, original_method_name
+        // );
+
+        let method_mod_name = &self.attrs.module_name;
+        let attr_docs = &self.doc_attrs;
+        // Ok(quote! {})
+
+        let state_ty = &impl_info.self_ty;
+        let res = if let Some(trait_path) = &impl_info.trait_path {
+            let last_segment = if let Some(s) = trait_path.segments.iter().rev().next() {
+                s
+            } else {
+                use syn::spanned::Spanned;
+                return Err(syn::Error::new(
+                    trait_path.span(),
+                    "Could not find any segment for trait path.",
+                )
+                .into());
+            };
+            let last_segment_ident = &last_segment.ident;
+            let mut trait_generics_lifetimes_idents = vec![];
+            let mut trait_generics_type_or_const_idents = vec![];
+            let mut trait_generics_const_exprs = vec![];
+            match &last_segment.arguments {
+                // no additional generics
+                syn::PathArguments::None => {}
+                // some generics. Needs to separate the lifetime from the rest,
+                // because the state shall be palced as the first aprameter
+                // right after the lifetimes
+                syn::PathArguments::AngleBracketed(a) => {
+                    for a in &a.args {
+                        match a {
+                            syn::GenericArgument::Lifetime(l) => {
+                                trait_generics_lifetimes_idents.push(l);
+                            }
+                            // note: const idents may also fall in this
+                            // arm
+                            syn::GenericArgument::Type(t) => {
+                                trait_generics_type_or_const_idents.push(t);
+                            }
+                            syn::GenericArgument::Const(c) => {
+                                trait_generics_const_exprs.push(c);
+                            }
+                            // TODO: think/check if it should be implemented (I'm not sure)
+                            // TODO: try to find an example that should be a valid implementation
+                            // in normal rust
+                            syn::GenericArgument::Binding(b) => {
+                                use syn::spanned::Spanned;
+                                return Err(syn::Error::new(
+                                    b.span(),
+                                    "Binding on an associated type for trait being implemented is not supported.",
+                                )
+                                .into());
+                            }
+                            // TODO: think/check if it should be implemented (I'm not sure)
+                            // TODO: try to find an example that should be a valid implementation
+                            // in normal rust
+                            syn::GenericArgument::Constraint(c) => {
+                                use syn::spanned::Spanned;
+                                return Err(syn::Error::new(
+                                    c.span(),
+                                    "Constraints on associated types for trait being implemented is not supported.",
+                                )
+                                .into());
+                            }
+                        }
+                    }
+                }
+                // invalid arguments
+                syn::PathArguments::Parenthesized(p) => {
+                    use syn::spanned::Spanned;
+                    return Err(syn::Error::new(
+                    p.span(),
+                    "arguments for a trait should not be parenthesized. It should be angle-bracketed instead.",
+                )
+                .into());
+                }
+            }
+            let trait_args_with_state = quote! {
+                #(#trait_generics_lifetimes_idents,)*
+                #state_ty,
+                #(#trait_generics_type_or_const_idents,)*
+                #(#trait_generics_const_exprs,)*
+            };
+            let before_last_segments = trait_path.segments.iter().rev().skip(1).collect::<Vec<_>>();
+            let trait_args_with_state_path = quote! {
+                #(#before_last_segments::)*#last_segment_ident<#trait_args_with_state>
+            };
+
+            let method_generics_lifetimes = self.generics.lifetimes.keys().collect::<Vec<_>>();
+            let method_generics_types = self.generics.types.keys().collect::<Vec<_>>();
+            let method_generics_consts = self.generics.consts.keys().collect::<Vec<_>>();
+            let trait_and_methods_arg_idents = quote! {
+                #(#trait_generics_lifetimes_idents,)*
+                #(#method_generics_lifetimes,)*
+                #state_ty
+                #(,#method_generics_types)*
+                #(,#trait_generics_type_or_const_idents)*
+                #(,#trait_generics_const_exprs)*
+                #(,#method_generics_consts)*
+            };
+
+            let trait_mod = if let Some(trait_mod) = &impl_info.attrs.trait_mod_path {
+                trait_mod
+            } else {
+                use syn::spanned::Spanned;
+                return Err(syn::Error::new(
+                    impl_info.trait_path.span(),
+                    "TODO: write the trait module path's, then rename the ident itself to lowercase and insert as the last path segment.",
+                )
+                .into());
+            };
+
+            let trait_method_mod = quote!(#trait_mod::#method_mod_name);
+
+            let trait_generic_lifetimes = impl_info.generics.lifetimes.values();
+            let trait_generic_types = impl_info.generics.types.values();
+            let trait_generic_consts = impl_info.generics.consts.values();
+
+            quote! {
+                #[doc = #doc_generated]
+                #[doc = ""]
+                #(#attr_docs)*
+                #[allow(non_camel_case_types)]
+                pub mod #method_mod_name {
+                    use super::*;
+                    use #internal_interface as _interface;
+
+                    #[doc = #doc_generated]
+                    #[doc = ""]
+                    impl < //
+                        #(#trait_generic_lifetimes,)*
+                        #(#method_generics_lifetimes,)*
+                        #(#method_generics_types,)*
+                        #(#trait_generic_types,)*
+                        #(#trait_generic_consts,)*
+                        #(#method_generics_consts,)*
+                    > _interface::CalledIn< //
+                        _interface::Json,
+                        _interface::Json
+                    > //
+                    for  #trait_method_mod::CalledIn<#trait_and_methods_arg_idents> {
+                        type State = #state_ty;
+                        type Args = #trait_method_mod::Args<#trait_and_methods_arg_idents>;
+                        type Return = #trait_method_mod::Return<()>;
+                        type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
+
+                        fn exposed_called_in() {
+                            todo!("method wrapper not yet implemented")
+                            // let method_wrapper = |state: &mut Self::State, args: Self::Args| {
+                            //     let () = <Self::State as Trait4>::method_a(state, args.my_bool);
+                            //     None
+                            // };
+                            // Self::called_in(method_wrapper);
+                        }
+                    }
+                }
+
+            }
+        } else {
+            quote! {}
+        };
+        Ok(res)
+        // panic!("{}", res.unwrap())
+
         /*
         let ImplItemMethodInfo { attr_signature_info, struct_type, .. } = self;
         // Args provided by `env::input()`.
@@ -165,10 +362,9 @@ impl ImplItemMethodInfo {
             }
         }
         */
-        quote! {}
     }
 
-    pub fn marshal_method(&self) -> TokenStream2 {
+    pub fn marshal_method(&self) -> error::Result<TokenStream2> {
         /*
         let ImplItemMethodInfo {
             attr_signature_info,
@@ -233,11 +429,11 @@ impl ImplItemMethodInfo {
             }
         }
         */
-        quote! {}
+        Ok(quote! {})
     }
 }
 
-fn json_serialize(attr_signature_info: &AttrSigInfo) -> TokenStream2 {
+fn json_serialize(attr_signature_info: &AttrSigInfo) -> error::Result<TokenStream2> {
     let args: TokenStream2 = attr_signature_info
         .input_args()
         .fold(None, |acc: Option<TokenStream2>, value| {
@@ -249,7 +445,7 @@ fn json_serialize(attr_signature_info: &AttrSigInfo) -> TokenStream2 {
             })
         })
         .unwrap();
-    quote! {
+    Ok(quote! {
       let args = near_sdk::serde_json::json!({#args}).to_string().into_bytes();
-    }
+    })
 }

@@ -1,20 +1,23 @@
 //! Example of defining an contract to be called by consumer contracts.
 //! (the consumer contracts still need to define their CallOut's)
 
-use contract_interface_internal as interface;
+use crate as interface;
+
 use interface::{contract, CalledIn};
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     near_bindgen, PanicOnDefault,
 };
 
-/// (Trait3 Doc)
+/// (Trait3 Doc).
 #[contract]
 pub trait Trait3< //
         'trait_lt,
         TraitType: std::fmt::Debug,
         const TRAIT_CONST: bool
 >: Clone
+where 
+TraitType: near_sdk::serde::de::DeserializeOwned + Sized
 {
     /// (TRAIT_INTERNAL_CONST Doc)
     const TRAIT_INTERNAL_CONST: bool;
@@ -33,12 +36,69 @@ pub trait Trait3< //
     >(
         &mut self,
         _my_string: String,
+        #[contract(attr(serde(bound = "")))]
         _my_m: TraitType,
         // (_my_y, _my_bool): (MethodTypeA, bool),
         // _my_y2: &'method_lt MethodTypeA,
 
         // TODO: attribute to implicitly consider
         // Self (aka. _State) as implementing the trait itself
+        _my_type_a: Self::TraitInternalTypeA,
+    ) -> MethodTypeB
+    where
+        TraitType: 'trait_lt,
+        MethodTypeA: Default,
+    {
+        unimplemented!()
+    }
+}
+
+
+
+
+/// (Trait4 Doc).
+#[contract(mod = "trait4")]
+pub trait Trait4 {
+    fn method_a(&mut self, my_bool: bool) {
+        unimplemented!()
+    }
+}
+
+/// (Impl Trait3 for Struct Doc).
+// #[contract(mod = "struct_2", trait = "trait_3")]
+impl<
+        //
+        'trait_lt,
+        TraitType: std::fmt::Debug,
+        const TRAIT_CONST: bool,
+    >
+    Trait3<
+        //
+        'trait_lt,
+        TraitType,
+        TRAIT_CONST,
+    > for Struct //
+
+    where TraitType: near_sdk::serde::de::DeserializeOwned
+{
+    /// (TRAIT_INTERNAL_CONST Doc)
+    const TRAIT_INTERNAL_CONST: bool = true;
+
+    /// (TraitInternalTypeA Doc)
+    type TraitInternalTypeA = ();
+
+    /// (TraitInternalTypeB Doc)
+    type TraitInternalTypeB = ();
+    /// (Impl method_a Doc).
+    fn method_a<
+        //
+        'method_lt,
+        MethodTypeA,
+        MethodTypeB,
+    >(
+        &mut self,
+        _my_string: String,
+        _my_m: TraitType,
         _my_type_a: Self::TraitInternalTypeA,
     ) -> MethodTypeB
     where
@@ -50,15 +110,10 @@ pub trait Trait3< //
     }
 }
 
-#[contract(name = "trait4")]
-pub trait Trait4 {
-    fn method_a(&mut self, my_bool: bool) {
-        unimplemented!()
-    }
-}
-
-#[contract(name = "struct_")]
+/// (Impl Trait4 for Struct Doc).
+#[contract(mod = "struct_", trait = "trait4")]
 impl Trait4 for Struct {
+    /// (Impl method_a Doc).
     fn method_a(&mut self, _my_bool: bool) {
         unimplemented!()
     }
@@ -89,6 +144,7 @@ pub extern "C" fn my_exported_method() {
 }
 */
 
+/// (Original Trait Doc).
 pub trait Trait {
     /// (Original method_a documentation)
     fn method_a(&mut self, my_string: String);
@@ -98,7 +154,7 @@ pub trait Trait {
 }
 
 // created by macro
-///
+/// (macro implementation reference)
 ///
 /// (Original Trait documentation)
 pub mod _trait {
@@ -170,7 +226,7 @@ pub mod _trait {
 // specific
 /// (Original Struct documentation)
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
 pub struct Struct {
     a: u8,
     b: u16,

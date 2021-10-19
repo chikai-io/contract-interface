@@ -30,12 +30,45 @@ pub struct ItemImplInfo {
 
 #[derive(Debug, FromMeta)]
 pub struct Attrs {
-    /// The struct name that will be used to generate the module.  
-    /// eg. `mod name {}`
-    #[darling(rename = "name")]
+    /// The name that will be used for the module that will contain
+    /// the generated items.
+    #[darling(rename = "mod")]
     pub module_name: syn::Ident,
+
+    // TODO: decide if this attribute is necessary
+    // (may still be useful, even with `serve` set,
+    // to check that no default implementation is being used)
+    //
+    /// The path to the module (generated from the trait) being
+    /// implemented.
+    ///
+    /// Use this if you intend to specialize the state of the items
+    /// from that module.  
+    ///
+    /// To define the generated module's items independently,
+    /// you can still set the `serve` attribute.
+    #[darling(rename = "trait", default)]
+    pub trait_mod_path: Option<syn::Path>,
+
+    /// Whether this struct/trait's methods should potentially be
+    /// served/exposed by the generated wasm.
+    ///
+    /// Use this if other users or contracts shall call or make
+    /// requests to this struct/trait's methods of your deployed
+    /// wasm file.
+    #[darling(default)]
+    serve: bool,
+
+    /// Whether this struct/trait's methods should potentially be
+    /// callable by the generated wasm.
+    ///
+    /// Use this if you intend to make requests into a deployed
+    /// contract that is serving this struct/trait's methods.
+    #[darling(default)]
+    request: bool,
 }
 
+#[derive(Debug)]
 pub struct ImplItems {
     /// The trait associated consts.  
     /// eg. `trait Trait {const T: u8}`.
@@ -49,20 +82,12 @@ pub struct ImplItems {
 }
 
 impl ImplItems {
-    pub fn replace_from_self_to_state(items: &[syn::ImplItem]) -> error::Result<Self> {
+    pub fn get_items(items: &mut [syn::ImplItem]) -> error::Result<Self> {
         let consts = items
             .iter()
             .filter_map(|item| {
                 if let syn::ImplItem::Const(tic) = item {
-                    let mut tic = tic.clone();
-
-                    // for the `const C<T: Trait<Self>>` cases
-                    replace_ident_from_self_to_state(&mut tic.ty);
-
-                    // for the `const X = C<Self>` cases
-                    replace_ident_from_self_to_state(&mut tic.expr);
-
-                    Some(tic)
+                    Some(tic.clone())
                 } else {
                     None
                 }
@@ -74,15 +99,7 @@ impl ImplItems {
             .iter()
             .filter_map(|item| {
                 if let syn::ImplItem::Type(tit) = item {
-                    let mut tit = tit.clone();
-
-                    // for the `type X<T: Trait<Self>>` cases
-                    replace_ident_from_self_to_state(&mut tit.generics);
-
-                    // for the `type X = Self` cases
-                    replace_ident_from_self_to_state(&mut tit.ty);
-
-                    Some(tit)
+                    Some(tit.clone())
                 } else {
                     None
                 }
@@ -91,7 +108,7 @@ impl ImplItems {
             .collect();
 
         let methods = items
-            .iter()
+            .iter_mut()
             .filter_map(|ti| {
                 if let syn::ImplItem::Method(tim) = ti {
                     Some(tim)
@@ -112,19 +129,19 @@ impl ImplItems {
 
 impl ItemImplInfo {
     pub(crate) fn new(
-        original: &syn::ItemImpl,
+        original: &mut syn::ItemImpl,
         attr_args: syn::AttributeArgs,
     ) -> error::Result<Self> {
         let (attrs, forward_attrs) =
             meta_attrs::meta_attrs::<Attrs>(&original.attrs, attr_args, "contract")?;
         let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
 
-        let generics = Generics::replace_from_self_to_state(&original.generics);
+        let generics = Generics::new(&original.generics);
 
         let self_ty = (*original.self_ty.as_ref()).clone();
         let trait_path = original.trait_.as_ref().map(|(_, p, _)| p);
 
-        let items = ImplItems::replace_from_self_to_state(&original.items)?;
+        let items = ImplItems::get_items(&mut original.items)?;
 
         Ok(Self {
             original: original.clone(),

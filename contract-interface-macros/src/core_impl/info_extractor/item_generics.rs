@@ -1,6 +1,7 @@
 use crate::replace_ident::replace_ident_from_self_to_state;
 
 /// Generics for vairous kinds of items.  
+#[derive(Debug)]
 pub struct Generics {
     /// The item's lifetimes generics.  
     /// eg. `trait Trait<'a> {}`.
@@ -32,27 +33,14 @@ pub struct Generics {
 
 impl Generics {
     /// Gets information and replaces the `Self` identifier to `_State`.
-    pub fn replace_from_self_to_state(generics: &syn::Generics) -> Self {
+    pub fn new(generics: &syn::Generics) -> Self {
         let lifetimes = generics
             .lifetimes()
             .map(|lt| (lt.lifetime.clone(), lt.clone()))
             .collect();
         let types = generics
             .type_params()
-            .map(|tp| {
-                (tp.ident.clone(), {
-                    let mut tp = tp.clone();
-                    for b in tp.bounds.iter_mut() {
-                        // for `T: Trait<Self>` case
-                        replace_ident_from_self_to_state(b);
-                    }
-                    if let Some(d) = tp.default.as_mut() {
-                        // for `T: Trait<Item=Self>` case
-                        replace_ident_from_self_to_state(d)
-                    }
-                    tp
-                })
-            })
+            .map(|tp| (tp.ident.clone(), tp.clone()))
             .collect();
         let consts = generics
             .const_params()
@@ -79,14 +67,7 @@ impl Generics {
                 .iter()
                 .filter_map(|wp| {
                     if let syn::WherePredicate::Type(pt) = wp {
-                        let mut pt = pt.clone();
-                        // for `Self: Trait` cases
-                        replace_ident_from_self_to_state(&mut pt.bounded_ty);
-                        for b in pt.bounds.iter_mut() {
-                            // for `T: Trait<Self>` cases
-                            replace_ident_from_self_to_state(b);
-                        }
-                        Some(pt)
+                        Some(pt.clone())
                     } else {
                         None
                     }
@@ -104,5 +85,32 @@ impl Generics {
             lifetime_bounds,
             type_bounds,
         }
+    }
+    pub fn replace_from_self_to_state(mut self) -> Self {
+        for tp in self.types.values_mut() {
+            for b in tp.bounds.iter_mut() {
+                // for `T: Trait<Self>` case
+                replace_ident_from_self_to_state(b);
+            }
+            if let Some(d) = tp.default.as_mut() {
+                // for `T: Trait<Item=Self>` case
+                replace_ident_from_self_to_state(d)
+            }
+        }
+
+        let mut new_type_bounds = indexmap::IndexMap::new();
+        for pt in self.type_bounds.values_mut() {
+            // for `Self: Trait` cases
+            replace_ident_from_self_to_state(&mut pt.bounded_ty);
+            for b in pt.bounds.iter_mut() {
+                // for `T: Trait<Self>` cases
+                replace_ident_from_self_to_state(b);
+            }
+
+            new_type_bounds.insert(pt.bounded_ty.clone(), pt.clone());
+        }
+        self.type_bounds = new_type_bounds;
+
+        self
     }
 }

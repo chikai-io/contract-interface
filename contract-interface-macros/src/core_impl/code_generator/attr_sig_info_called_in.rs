@@ -5,6 +5,7 @@ use crate::core_impl::info_extractor::{
     attr_sig_info_called_in::AttrSigInfo,
     InputStructType, SerializerType,
 };
+use crate::error;
 use quote::quote;
 
 impl AttrSigInfo {
@@ -24,7 +25,7 @@ impl AttrSigInfo {
     ///   arg2: (u64, Vec<String>),
     /// }
     /// ```
-    pub fn input_struct(&self, input_struct_type: InputStructType) -> TokenStream2 {
+    pub fn input_struct(&self, input_struct_type: InputStructType) -> error::Result<TokenStream2> {
         let args: Vec<_> = self.input_args().collect();
         assert!(
             !args.is_empty(),
@@ -61,12 +62,12 @@ impl AttrSigInfo {
                 #ident: #ty,
             });
         }
-        quote! {
+        Ok(quote! {
             #attribute
             struct Input {
                 #fields
             }
-        }
+        })
     }
 
     /// Create pattern that decomposes input struct using correct mutability modifiers.
@@ -78,7 +79,7 @@ impl AttrSigInfo {
     ///     arg2
     /// }
     /// ```
-    pub fn decomposition_pattern(&self) -> TokenStream2 {
+    pub fn decomposition_pattern(&self) -> error::Result<TokenStream2> {
         let args: Vec<_> = self.input_args().collect();
         assert!(
             !args.is_empty(),
@@ -86,16 +87,18 @@ impl AttrSigInfo {
         );
         let mut fields = TokenStream2::new();
         for arg in args {
-            let ArgInfo { mutability, ident, .. } = &arg;
+            let ArgInfo {
+                mutability, ident, ..
+            } = &arg;
             fields.extend(quote! {
             #mutability #ident,
             });
         }
-        quote! {
+        Ok(quote! {
             Input {
                 #fields
             }
-        }
+        })
     }
 
     /// Create expression that constructs the struct.
@@ -107,7 +110,7 @@ impl AttrSigInfo {
     ///     arg2,
     /// }
     /// ```
-    pub fn constructor_expr(&self) -> TokenStream2 {
+    pub fn constructor_expr(&self) -> error::Result<TokenStream2> {
         let args: Vec<_> = self.input_args().collect();
         assert!(
             !args.is_empty(),
@@ -120,11 +123,11 @@ impl AttrSigInfo {
             #ident,
             });
         }
-        quote! {
+        Ok(quote! {
             Input {
                 #fields
             }
-        }
+        })
     }
 
     /// Create a sequence of arguments that can be used to call the method or the function
@@ -134,15 +137,20 @@ impl AttrSigInfo {
     /// ```ignore
     /// a, &b, &mut c,
     /// ```
-    pub fn arg_list(&self) -> TokenStream2 {
+    pub fn arg_list(&self) -> error::Result<TokenStream2> {
         let mut result = TokenStream2::new();
         for arg in &self.args {
-            let ArgInfo { reference, mutability, ident, .. } = &arg;
+            let ArgInfo {
+                reference,
+                mutability,
+                ident,
+                ..
+            } = &arg;
             result.extend(quote! {
                 #reference #mutability #ident,
             });
         }
-        result
+        Ok(result)
     }
 
     /// Create a sequence of patterns and types to be used in the method signature.
@@ -151,7 +159,7 @@ impl AttrSigInfo {
     /// ```ignore
     /// a: u64, b: &mut T, ref mut c: Vec<String>,
     /// ```
-    pub fn pat_type_list(&self) -> TokenStream2 {
+    pub fn pat_type_list(&self) -> error::Result<TokenStream2> {
         let mut result = TokenStream2::new();
         for arg in self.input_args() {
             let ArgInfo { original, .. } = &arg;
@@ -159,12 +167,12 @@ impl AttrSigInfo {
                 #original,
             });
         }
-        result
+        Ok(result)
     }
 
     /// Create code that deserializes arguments that were decorated with `#[callback*]`
-    pub fn callback_deserialization(&self) -> TokenStream2 {
-        self.args
+    pub fn callback_deserialization(&self) -> error::Result<TokenStream2> {
+        Ok(self.args
             .iter()
             .filter(|arg| {
                 matches!(
@@ -185,7 +193,7 @@ impl AttrSigInfo {
                                 _ => near_sdk::env::panic_str(#error_msg)
                             };
                         };
-                        let invocation = deserialize_data(serializer_ty);
+                        let invocation = deserialize_data(serializer_ty).unwrap();
                         quote! {
                             #acc
                             #read_data
@@ -193,7 +201,7 @@ impl AttrSigInfo {
                         }
                     }
                     BindgenArgType::CallbackResultArg => {
-                        let deserialize = deserialize_data(serializer_ty);
+                        let deserialize = deserialize_data(serializer_ty).unwrap();
                         let result = quote! {
                             match near_sdk::env::promise_result(#idx) {
                                 near_sdk::PromiseResult::Successful(data) => Ok(#deserialize),
@@ -208,18 +216,18 @@ impl AttrSigInfo {
                     }
                     _ => unreachable!()
                 }
-            })
+            }))
     }
 
     /// Create code that deserializes arguments that were decorated with `#[callback_vec]`.
-    pub fn callback_vec_deserialization(&self) -> TokenStream2 {
-        self
+    pub fn callback_vec_deserialization(&self) -> error::Result<TokenStream2> {
+        Ok(self
             .args
             .iter()
             .filter(|arg| matches!(arg.bindgen_ty, BindgenArgType::CallbackArgVec))
             .fold(TokenStream2::new(), |acc, arg| {
                 let ArgInfo { mutability, ident, ty, .. } = arg;
-                let invocation = deserialize_data(&arg.serializer_ty);
+                let invocation = deserialize_data(&arg.serializer_ty).unwrap();
                 quote! {
                 #acc
                 let #mutability #ident: #ty = (0..near_sdk::env::promise_results_count())
@@ -232,16 +240,17 @@ impl AttrSigInfo {
                 }).collect();
             }
             })
+        )
     }
 }
 
-pub fn deserialize_data(ty: &SerializerType) -> TokenStream2 {
+pub fn deserialize_data(ty: &SerializerType) -> error::Result<TokenStream2> {
     match ty {
-        SerializerType::JSON => quote! {
+        SerializerType::JSON => Ok(quote! {
             near_sdk::serde_json::from_slice(&data).expect("Failed to deserialize callback using JSON")
-        },
-        SerializerType::Borsh => quote! {
+        }),
+        SerializerType::Borsh => Ok(quote! {
             near_sdk::borsh::BorshDeserialize::try_from_slice(&data).expect("Failed to deserialize callback using Borsh")
-        },
+        }),
     }
 }

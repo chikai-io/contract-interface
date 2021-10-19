@@ -11,8 +11,12 @@ use syn::export::TokenStream2;
 
 impl TraitItemMethodInfo {
     /// Generate code that wraps the method.
-    pub fn method_wrapper(&self, trait_info: &ItemTraitInfo) -> error::Result<TokenStream2> {
-        let method_mod_name = &self.attrs.method_name;
+    pub fn method_wrapper(
+        &self,
+        original_method_name: &syn::Ident,
+        trait_info: &ItemTraitInfo,
+    ) -> error::Result<TokenStream2> {
+        let method_mod_name = &self.attrs.method_mod_name;
         let attr_docs = &self.doc_attrs;
 
         //
@@ -41,7 +45,16 @@ impl TraitItemMethodInfo {
         let args_method_generic_const_idents = self.generics.consts.keys().collect::<Vec<_>>();
         let args_method_generic_consts = self.generics.consts.values().collect::<Vec<_>>();
 
-        let args = &self.inputs.args;
+        let outer_args = &self.inputs.args;
+        let (args, args_forward_attrs): (Vec<_>, Vec<_>) = outer_args
+            .iter()
+            .map(|a| {
+                let mut arg = a.arg.clone();
+                arg.attrs.clear();
+                let forwarded_attr = &a.attr.forward_attr;
+                (arg, quote! { #( # [ #forwarded_attr ] )* })
+            })
+            .unzip();
 
         let self_lifetime_bounds = &trait_info.self_lifetime_bounds;
         let self_lifetime_bounds_q = if self_lifetime_bounds.is_empty() {
@@ -93,8 +106,8 @@ impl TraitItemMethodInfo {
                 #implicit_self_trait_bound
                 #(#trait_lifetime_where_clauses,)*
                 #(#method_lifetime_where_clauses,)*
-                #(#trait_type_where_clauses,)*
                 #(#method_type_where_clauses,)*
+                #(#trait_type_where_clauses,)*
         };
 
         /*
@@ -125,8 +138,8 @@ impl TraitItemMethodInfo {
             #(#args_trait_lifetimes,)*
             #(#args_method_lifetimes,)*
             _State,
-            #(#args_trait_generic_types,)*
             #(#args_method_generic_types,)*
+            #(#args_trait_generic_types,)*
             #(#args_trait_generic_consts,)*
             #(#args_method_generic_consts,)*
         };
@@ -135,20 +148,28 @@ impl TraitItemMethodInfo {
             #(#args_trait_lifetime_idents,)*
             #(#args_method_lifetime_idents,)*
             _State,
-            #(#args_trait_generic_type_idents,)*
             #(#args_method_generic_type_idents,)*
+            #(#args_trait_generic_type_idents,)*
             #(#args_trait_generic_const_idents,)*
             #(#args_method_generic_const_idents,)*
         };
 
-        let q = Ok(quote! {
-            #[allow(non_camel_case_types)]
-            #(#attr_docs)*
-            pub mod #method_mod_name {
-                use #near_sdk as _near_sdk;
-                use std::marker::PhantomData;
-                use super::*;
+        let mod_doc_msg = format!(
+            " Generated code based on [`{}::{}()`].",
+            &trait_info.original_ident, original_method_name
+        );
 
+        let q = Ok(quote! {
+            #[doc = #mod_doc_msg]
+            #[doc = ""]
+            #(#attr_docs)*
+            #[allow(non_camel_case_types)]
+            pub mod #method_mod_name {
+                use super::*;
+                use #near_sdk as _near_sdk;
+
+                #[doc = #mod_doc_msg]
+                #[doc = ""]
                 #(#attr_docs)*
                 #[derive(_near_sdk::serde::Deserialize)]
                 #[serde(crate = "_near_sdk::serde")]
@@ -158,16 +179,20 @@ impl TraitItemMethodInfo {
                 >
                 #where_clause
                 {
-                    #(pub #args,)*
+                    #( #args_forward_attrs pub #args,)*
                     #[serde(skip)]
                     pub _phantom: CalledIn< //
                         #args_generics_idents
                     >,
                 }
 
+                #[doc = #mod_doc_msg]
+                #[doc = ""]
                 #(#attr_docs)*
                 pub type Return<Z> = Z;
 
+                #[doc = #mod_doc_msg]
+                #[doc = ""]
                 #(#attr_docs)*
                 #[derive(Default)]
                 pub struct CalledIn< //
@@ -181,7 +206,7 @@ impl TraitItemMethodInfo {
                     _method_lifetimes: ( //
                         #(std::marker::PhantomData<&#args_method_lifetime_idents ()>,)*
                     ),
-                    _state_type: PhantomData<_State>,
+                    _state_type: std::marker::PhantomData<_State>,
                     _trait_types: ( //
                         #(std::marker::PhantomData<#args_trait_generic_type_idents>,)*
                     ),
@@ -201,13 +226,13 @@ impl TraitItemMethodInfo {
     pub fn generate_serialier(
         attr_sig_info: &AttrSigInfo,
         serializer: &SerializerType,
-    ) -> TokenStream2 {
+    ) -> error::Result<TokenStream2> {
         let has_input_args = attr_sig_info.input_args().next().is_some();
         if !has_input_args {
-            return quote! { let args = vec![]; };
+            return Ok(quote! { let args = vec![]; });
         }
-        let struct_decl = attr_sig_info.input_struct(InputStructType::Serialization);
-        let constructor_call = attr_sig_info.constructor_expr();
+        let struct_decl = attr_sig_info.input_struct(InputStructType::Serialization)?;
+        let constructor_call = attr_sig_info.constructor_expr()?;
         let constructor = quote! { let args = #constructor_call; };
         let value_ser = match serializer {
             SerializerType::JSON => quote! {
@@ -218,10 +243,10 @@ impl TraitItemMethodInfo {
             },
         };
 
-        quote! {
+        Ok(quote! {
           #struct_decl
           #constructor
           #value_ser
-        }
+        })
     }
 }

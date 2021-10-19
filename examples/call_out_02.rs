@@ -1,20 +1,20 @@
 //! Example of calling an external contract.
 
-use contract_interface_internal as interface;
+use contract_interface as interface;
+use near_sdk::ext_contract;
+use near_sdk::serde::{Deserialize, Serialize};
 
-use near_sdk::{ext_contract, AccountId as AccId};
+#[derive(Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct OneArg;
 
-/// (Original TraitA documentation)
-#[ext_contract]
-pub trait TraitA {
-    /// (Original method_a documentation)
-    fn method_a(&mut self, my_string: String);
+/// (Original Trait documentation)
+// #[ext_contract]
+pub trait Trait<X> {
+    type MyType;
 
-    /// (Original set_status2 documentation)
-    fn method_b(&mut self, my_string_1: String, my_string_2: String);
-
-    /// (Original get_status documentation)
-    fn get_status(&self, account_id: AccId) -> Option<String>;
+    /// (Original set_status1 documentation)
+    fn method_a<Y, Z>(&mut self, message: String, my_x: X, my_y: Y, my_type: Self::MyType) -> Z;
 }
 
 pub fn example() {
@@ -22,62 +22,47 @@ pub fn example() {
 
     const SINGLE_CALL_GAS: u64 = 200000000000000;
 
-    // current/standard call syntax
-    trait_a::method_a(
-        String::from("my_value"),
-        "my.contract".parse().unwrap(),
-        0,
-        Gas::from(SINGLE_CALL_GAS),
-    );
+    // trait_a::method_a(
+    //     String::from("my_value"),
+    //     "my.contract".parse().unwrap(),
+    //     0,
+    //     Gas::from(SINGLE_CALL_GAS),
+    // );
 
     // generic builder
     interface::CallOut::contract("my.contract".parse().unwrap())
-        .method(String::from("method_a"))
+        .method(String::from("set_status1"))
         .args(interface::json::named::NamedJson1::new(
-            String::from("my_string"),
+            String::from("message"),
             String::from("my_value"),
         ))
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
         .call_out();
 
+    let my_x = true;
+    let my_y = 1u8;
+    let my_type = 5u16;
     // specialized builder
-    _trait_a::method_a::CallOut::contract("my.contract".parse().unwrap())
-        .args(String::from("my_value"))
+    _trait::method_a::CallOut::contract("my.contract".parse().unwrap())
+        .args(String::from("my_value"), my_x, my_y, my_type)
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
         .call_out();
-
-    //
-    // later: using with promisses
-    //
-
-    trait_a::method_a(
-        String::from("my_value"),
-        "my.contract".parse().unwrap(),
-        0,
-        Gas::from(SINGLE_CALL_GAS),
-    )
-    .then(trait_a::method_a(
-        String::from("my_value"),
-        "my.contract".parse().unwrap(),
-        0,
-        Gas::from(SINGLE_CALL_GAS),
-    ));
 }
 
 // example on how a macro-generated code could look like
 // in order to facilitate the interface usage
 ///
 ///
-/// (Original TraitA documentation)
-pub mod _trait_a {
+/// (Original ExtStatusMessage documentation)
+pub mod _trait {
 
     ///
     ///
     /// (Original method_a documentation)
     pub mod method_a {
-        use contract_interface_internal as interface;
+        use contract_interface as interface;
         use interface::call_out;
         use near_sdk::serde::{Deserialize, Serialize};
         use near_sdk::{AccountId, Balance, Gas};
@@ -87,12 +72,15 @@ pub mod _trait_a {
         /// (Original method_a documentation)
         #[derive(Serialize, Deserialize)]
         #[serde(crate = "near_sdk::serde")]
-        pub struct Args {
-            my_string: String,
+        pub struct Args<X, MyType, Y> {
+            message: String,
+            my_x: X,
+            my_y: Y,
+            my_type: MyType,
         }
 
         pub fn method_name() -> &'static str {
-            "set_status1"
+            "method_a"
         }
 
         ///
@@ -100,7 +88,7 @@ pub mod _trait_a {
         /// (Original method_a documentation)
         pub struct CallOut;
         impl CallOut {
-            /// Builder for calling the `set_status1` method on a contract.
+            /// Builder for calling the `method_a` method on a contract.
             ///
             /// (Original method_a documentation)
             pub fn contract(contract_being_called: AccountId) -> MethodCallOut {
@@ -130,11 +118,22 @@ pub mod _trait_a {
             // also replicated on every method and definition on
             // Args/Amount/GasCall, besides it being more specialized.
 
-            /// Informs the arguments (except for `self`) that `set_status1` should receive.
+            /// Informs the arguments (except for `self`) that `method_a` should receive.
             ///
             /// (Original method_a documentation)
-            pub fn args(self, message: String) -> ArgsCallOut {
-                let args = Args { my_string: message };
+            pub fn args<X, MyType, Y>(
+                self,
+                message: String,
+                my_x: X,
+                my_y: Y,
+                my_type: MyType,
+            ) -> ArgsCallOut<X, MyType, Y> {
+                let args = Args::<X, MyType, Y> {
+                    message,
+                    my_x,
+                    my_y,
+                    my_type,
+                };
                 ArgsCallOut::new(self.method_name, self.contract_being_called, args)
             }
 
@@ -152,14 +151,18 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct ArgsCallOut {
+        pub struct ArgsCallOut<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
-            args: Args,
+            args: Args<X, MyType, Y>,
         }
 
-        impl ArgsCallOut {
-            pub fn new(method_name: String, contract_being_called: AccountId, args: Args) -> Self {
+        impl<X, MyType, Y> ArgsCallOut<X, MyType, Y> {
+            pub fn new(
+                method_name: String,
+                contract_being_called: AccountId,
+                args: Args<X, MyType, Y>,
+            ) -> Self {
                 Self {
                     method_name,
                     contract_being_called,
@@ -169,8 +172,8 @@ pub mod _trait_a {
 
             ///
             ///
-            /// (Original method_a documentation)   
-            pub fn send_amount(self, send_amount: Balance) -> AmountCallOut {
+            /// (Original method_a documentation)
+            pub fn send_amount(self, send_amount: Balance) -> AmountCallOut<X, MyType, Y> {
                 AmountCallOut {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
@@ -182,7 +185,7 @@ pub mod _trait_a {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut {
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut<X, MyType, Y> {
                 GasCallOut {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
@@ -192,14 +195,18 @@ pub mod _trait_a {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::ArgsCallOut<Args, interface::Json> {
+            pub fn into_generic(
+                self,
+            ) -> call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::ArgsCallOut<Args, interface::Json>> for ArgsCallOut {
-            fn into(self) -> call_out::ArgsCallOut<Args, interface::Json> {
+        impl<X, MyType, Y> Into<call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json>>
+            for ArgsCallOut<X, MyType, Y>
+        {
+            fn into(self) -> call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -209,18 +216,18 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct AmountCallOut {
+        pub struct AmountCallOut<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
-            args: Args,
+            args: Args<X, MyType, Y>,
             send_amount: Balance,
         }
 
-        impl AmountCallOut {
+        impl<X, MyType, Y> AmountCallOut<X, MyType, Y> {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut {
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut<X, MyType, Y> {
                 GasCallOut {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
@@ -230,14 +237,18 @@ pub mod _trait_a {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::AmountCallOut<Args, interface::Json> {
+            pub fn into_generic(
+                self,
+            ) -> call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::AmountCallOut<Args, interface::Json>> for AmountCallOut {
-            fn into(self) -> call_out::AmountCallOut<Args, interface::Json> {
+        impl<X, MyType, Y> Into<call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json>>
+            for AmountCallOut<X, MyType, Y>
+        {
+            fn into(self) -> call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
@@ -248,15 +259,18 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct GasCallOut {
+        pub struct GasCallOut<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
-            args: Args,
+            args: Args<X, MyType, Y>,
             send_amount: Balance,
             prepaid_gas: Gas,
         }
 
-        impl GasCallOut {
+        impl<X, MyType, Y> GasCallOut<X, MyType, Y>
+        where
+            Args<X, MyType, Y>: interface::ToBytes<interface::Json>,
+        {
             ///
             ///
             /// (Original method_a documentation)
@@ -264,22 +278,23 @@ pub mod _trait_a {
                 use interface::ToBytes;
                 near_sdk::Promise::new(self.contract_being_called).function_call(
                     self.method_name.to_string(),
-                    self.args
-                        .to_bytes()
+                    ToBytes::to_bytes(&self.args)
                         .expect("Failed to serialize the cross contract args."),
                     self.send_amount,
                     self.prepaid_gas,
                 );
             }
 
-            pub fn into_generic(self) -> call_out::GasCallOut<Args, interface::Json> {
+            pub fn into_generic(self) -> call_out::GasCallOut<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::GasCallOut<Args, interface::Json>> for GasCallOut {
-            fn into(self) -> call_out::GasCallOut<Args, interface::Json> {
+        impl<X, MyType, Y> Into<call_out::GasCallOut<Args<X, MyType, Y>, interface::Json>>
+            for GasCallOut<X, MyType, Y>
+        {
+            fn into(self) -> call_out::GasCallOut<Args<X, MyType, Y>, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)

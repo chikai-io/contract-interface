@@ -6,6 +6,7 @@ use crate::error;
 use darling::FromMeta;
 
 /// Information extracted from `ImplItemMethod`.
+#[derive(Debug)]
 pub struct ImplItemMethodInfo {
     /// The original AST of the impl item method.
     pub original: syn::ImplItemMethod,
@@ -41,7 +42,7 @@ pub struct Attrs {
 
 impl ImplItemMethodInfo {
     /// Process the method and extract information important for near-sdk.
-    pub fn new(original: &syn::ImplItemMethod) -> error::Result<Self> {
+    pub fn new(original: &mut syn::ImplItemMethod) -> error::Result<Self> {
         let ident = original.sig.ident.clone();
 
         let (raw_attrs, forward_attrs) =
@@ -55,9 +56,9 @@ impl ImplItemMethodInfo {
             }),
         };
 
-        let generics = Generics::replace_from_self_to_state(&original.sig.generics);
+        let generics = Generics::new(&original.sig.generics);
 
-        let inputs = Inputs::replace_from_self_to_state(original.sig.inputs.iter());
+        let inputs = Inputs::new(original.sig.inputs.iter_mut())?;
 
         // let attr_sig_info = AttrSigInfo::new(attrs, sig)?;
 

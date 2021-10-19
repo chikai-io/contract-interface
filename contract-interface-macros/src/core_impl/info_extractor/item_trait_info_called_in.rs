@@ -8,12 +8,15 @@ use inflector::Inflector;
 
 /// Information extracted from `ItemTrait`.
 pub struct ItemTraitInfo {
+    // TODO: ahve an alternative to original,
+    // with de #[contract] attributes filtered out
+    //
     /// The original AST of the trait.
     pub original: syn::ItemTrait,
 
     pub attrs: Attrs,
     pub doc_attrs: Vec<syn::Attribute>,
-    pub forward_attrs: Vec<syn::Attribute>,
+    pub non_contract_attrs: Vec<syn::Attribute>,
 
     /// The trait name.  
     /// eg. `trait Name`
@@ -35,14 +38,32 @@ pub struct ItemTraitInfo {
 
 #[derive(Debug, FromMeta)]
 pub struct RawAttrs {
-    #[darling(default, rename = "name")]
+    /// The name that will be used for the module that will contain
+    /// the generated items.
+    #[darling(default, rename = "mod")]
     module_name: Option<syn::Ident>,
+
+    /// Whether this trait's methods should potentially be
+    /// served/exposed by the generated wasm.
+    ///
+    /// Use this if other users or contracts shall call or make
+    /// requests to this trait's methods of your deployed wasm file.
+    #[darling(default)]
+    serve: bool,
+
+    /// Whether this trait's methods should potentially be callable
+    /// by the generated wasm.
+    ///
+    /// Use this if you intend to make requests into a deployed
+    /// contract that is serving this trait's methods.
+    #[darling(default)]
+    request: bool,
 }
 
 #[derive(Debug)]
 pub struct Attrs {
-    /// The trait name that will be used to generate the module.  
-    /// eg. `mod name {}`
+    /// The name that will be used for the module that will contain
+    /// the generated items.
     pub module_name: syn::Ident,
 }
 
@@ -59,7 +80,7 @@ pub struct TraitItems {
 }
 
 impl TraitItems {
-    pub fn replace_from_self_to_state(items: &[syn::TraitItem]) -> error::Result<Self> {
+    pub fn replace_from_self_to_state(items: &mut [syn::TraitItem]) -> error::Result<Self> {
         let consts = items
             .iter()
             .filter_map(|item| {
@@ -108,7 +129,7 @@ impl TraitItems {
             .collect();
 
         let methods = items
-            .iter()
+            .iter_mut()
             .filter_map(|ti| {
                 if let syn::TraitItem::Method(tim) = ti {
                     Some(tim)
@@ -129,14 +150,15 @@ impl TraitItems {
 
 impl ItemTraitInfo {
     pub(crate) fn new(
-        original: &syn::ItemTrait,
+        original: &mut syn::ItemTrait,
         attr_args: syn::AttributeArgs,
     ) -> error::Result<Self> {
         let original_ident = original.ident.clone();
 
-        let (raw_attrs, forward_attrs) =
+        let (raw_attrs, non_contract__attrs) =
             meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, attr_args, "contract")?;
-        let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
+        let (doc_attrs, non_contract_attrs) =
+            meta_attrs::partition_attrs(&non_contract__attrs, "doc");
 
         let attrs = Attrs {
             module_name: raw_attrs.module_name.unwrap_or_else(|| {
@@ -145,7 +167,7 @@ impl ItemTraitInfo {
             }),
         };
 
-        let generics = Generics::replace_from_self_to_state(&original.generics);
+        let generics = Generics::new(&original.generics).replace_from_self_to_state();
 
         let self_lifetime_bounds = original
             .supertraits
@@ -174,13 +196,13 @@ impl ItemTraitInfo {
             })
             .collect();
 
-        let items = TraitItems::replace_from_self_to_state(&original.items)?;
+        let items = TraitItems::replace_from_self_to_state(&mut original.items)?;
 
         Ok(Self {
             original_ident,
             attrs,
             doc_attrs,
-            forward_attrs,
+            non_contract_attrs,
             original: original.clone(),
             generics,
             self_lifetime_bounds,

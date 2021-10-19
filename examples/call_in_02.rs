@@ -4,7 +4,7 @@
 //!
 //! (the consumer contracts still need to define their CallOut's)
 
-use contract_interface_internal as interface;
+use contract_interface as interface;
 use interface::CalledIn;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},

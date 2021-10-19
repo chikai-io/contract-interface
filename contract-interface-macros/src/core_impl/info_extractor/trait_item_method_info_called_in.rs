@@ -28,33 +28,35 @@ pub struct TraitItemMethodInfo {
 
 #[derive(Debug, FromMeta)]
 pub struct RawAttrs {
-    #[darling(default, rename = "name")]
-    method_name: Option<syn::Ident>,
+    /// The name that will be used for the module that will contain
+    /// the generated items.
+    #[darling(default, rename = "mod")]
+    method_mod_name: Option<syn::Ident>,
 }
 
 #[derive(Debug)]
 pub struct Attrs {
-    /// The method name.  
-    /// eg. `fn name() {}`
-    pub method_name: syn::Ident,
+    /// The name that will be used for the module that will contain
+    /// the generated items.
+    pub method_mod_name: syn::Ident,
 }
 
 impl TraitItemMethodInfo {
-    pub fn new(original: &syn::TraitItemMethod) -> error::Result<Self> {
+    pub fn new(original: &mut syn::TraitItemMethod) -> error::Result<Self> {
         let (raw_attrs, forward_attrs) =
             meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, vec![], "contract")?;
         let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
 
         let attrs = Attrs {
-            method_name: raw_attrs.method_name.unwrap_or_else(|| {
+            method_mod_name: raw_attrs.method_mod_name.unwrap_or_else(|| {
                 let res = original.sig.ident.to_string();
                 syn::Ident::new(&res, syn::export::Span::call_site())
             }),
         };
 
-        let generics = Generics::replace_from_self_to_state(&original.sig.generics);
+        let generics = Generics::new(&original.sig.generics).replace_from_self_to_state();
 
-        let inputs = Inputs::replace_from_self_to_state(original.sig.inputs.iter());
+        let inputs = Inputs::new(original.sig.inputs.iter_mut())?.replace_from_self_to_state();
 
         // let attr_sig_info = AttrSigInfo::new(attrs, sig)?;
 

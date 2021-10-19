@@ -1,7 +1,39 @@
+[package]
+name = "contract-interface"
+version = "0.0.1"
+authors = ["Thiago Machado <thiago@keyko.io>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+contract-interface-types = {path = "contract-interface-types"}
+contract-interface-macros = {path = "contract-interface-macros"}
+near-sdk = "4.0.0-pre.2"
+
+[dev-dependencies]
+near-sdk = "4.0.0-pre.2"
+near-contract-standards = "4.0.0-pre.2"
+
 [workspace]
 members = [
-    "contract-interface-internal", 
     "contract-interface-types", 
     "contract-interface-macros", 
 ]
 
+# [[example]]
+# name = "call_in_01"
+# crate-type = ["cdylib"]
+
+[[example]]
+name = "call_in_02"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "call_out_01"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "call_out_02"
+crate-type = ["cdylib"]

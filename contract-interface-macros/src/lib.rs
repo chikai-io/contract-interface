@@ -94,7 +94,7 @@ pub fn contract(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr_args = syn::parse_macro_input!(attr as syn::AttributeArgs);
     match contract_internal(attr_args, item) {
         Ok(ok) => ok,
-        Err(e) => e.into(),
+        Err(e) => e.into_token_stream(),
     }
 }
 
@@ -103,29 +103,31 @@ fn contract_internal(
     item: TokenStream,
 ) -> error::Result<TokenStream> {
     // attached on `trait Trait {}`
-    if let Ok(item_trait) = syn::parse::<ItemTrait>(item.clone()) {
-        let item_trait_info =
-            info_extractor::item_trait_info_called_in::ItemTraitInfo::new(&item_trait, attr_args)?;
-        Ok(item_trait_info.wrapped_module().into())
+    if let Ok(mut item_trait) = syn::parse::<ItemTrait>(item.clone()) {
+        let item_trait_info = info_extractor::item_trait_info_called_in::ItemTraitInfo::new(
+            &mut item_trait,
+            attr_args,
+        )?;
+        Ok(item_trait_info.wrapped_module()?.into())
     }
     // attached on `impl Trait for Struct {}`
-    else if let Ok(item_impl) = syn::parse::<ItemImpl>(item) {
+    else if let Ok(mut item_impl) = syn::parse::<ItemImpl>(item) {
         let item_impl_info =
-            info_extractor::item_impl_info_called_in::ItemImplInfo::new(&item_impl, attr_args)?;
-        let generated_code = item_impl_info.wrapper_code();
+            info_extractor::item_impl_info_called_in::ItemImplInfo::new(&mut item_impl, attr_args)?;
+        let generated_code = item_impl_info.wrapper_code()?;
         // Add helper type for simulation testing only if not wasm32
-        let marshalled_code = item_impl_info.marshall_code();
+        let marshalled_code = item_impl_info.marshall_code()?;
         Ok(TokenStream::from(quote! {
-            #item_impl
+            // #item_impl
             #generated_code
             #marshalled_code
         }))
     }
-    // invalid #[contract] attribute attachment
+    // invalid root #[contract] attribute attachment
     else {
         Err(syn::Error::new(
             Span::call_site(),
-            "`called_in` can only be used on trait definitions or on it's implementations",
+            "`contract` can only be used on trait definitions or on it's implementations. Perhaps a `#[contract]` attribute is missing at the parent item?",
         )
         .into())
     }
