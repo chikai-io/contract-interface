@@ -4,8 +4,7 @@ This is a WIP fork of [near-sdk-macros](https://github.com/near/near-sdk-rs/tree
 
 ## Motivation
 
-The main motivation is to have generics for contracts.  
-For more details, please see [this issue](https://github.com/near/near-sdk-rs/issues/606).
+Please see [near-sdk-rs#606](https://github.com/near/near-sdk-rs/issues/606) for more details.
 
 ## Features
 
@@ -19,4 +18,5 @@ For more details, please see [this issue](https://github.com/near/near-sdk-rs/is
 
 ## Examples
 
-TODO (features are still being worked on)
+TODO (features are still being worked on)  
+(Currently the `examples/` directory doesn't really contain any actual example)
