@@ -182,10 +182,14 @@ impl ImplItemMethodInfo {
 
             let trait_method_mod = quote!(#trait_mod::#method_mod_name);
 
-            let trait_generic_lifetimes = impl_info.generics.lifetimes.values();
-            let trait_generic_types = impl_info.generics.types.values();
-            let trait_generic_consts = impl_info.generics.consts.values();
+            let trait_generic_lifetimes =
+                &impl_info.generics.lifetimes.values().collect::<Vec<_>>();
+            let trait_generic_types = &impl_info.generics.types.values().collect::<Vec<_>>();
+            let trait_generic_consts = &impl_info.generics.consts.values().collect::<Vec<_>>();
 
+            // TODO: not needed
+            // TODO: test various patterns as arguments
+            // eg. (a, b): (bool, u8),
             let args_pats = self
                 .inputs
                 .args
@@ -247,6 +251,90 @@ impl ImplItemMethodInfo {
                 ),
             };
 
+            #[derive(Debug, Clone)]
+            enum Receiver {
+                RefMut,
+                Ref,
+                Owned,
+                Stateless,
+            }
+
+            // TODO: move to info gathering
+            let receiver = match &self.inputs.receiver {
+                Some(r) => match (r.reference.is_some(), r.mutability.is_some()) {
+                    (true, true) => Receiver::RefMut,
+                    (true, false) => Receiver::Ref,
+                    (false, true) => Receiver::Owned,
+                    (false, false) => Receiver::Owned,
+                },
+                None => Receiver::Stateless,
+            };
+
+            let receiver_trait_name = match receiver {
+                Receiver::RefMut => quote!(_interface::CalledInRefMut),
+                Receiver::Ref => quote!(_interface::CalledInRef),
+                Receiver::Owned => quote!(_interface::CalledInOwned),
+                Receiver::Stateless => quote!(_interface::CalledInStateless),
+            };
+
+            let receiver_state = match receiver {
+                Receiver::RefMut => quote!(&mut Self::State,),
+                Receiver::Ref => quote!(&Self::State,),
+                Receiver::Owned => quote!(Self::State,),
+                Receiver::Stateless => quote!(),
+            };
+
+            let receiver_exposed_called_in = match receiver {
+                Receiver::RefMut => quote! {
+                    fn exposed_called_in() {
+                        use _interface::CalledInRefMut;
+                        let method_wrapper = |state: &mut Self::State, args: Self::Args| {
+                            let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
+                                #method_arg_idents
+                            > (state, #(args.#args_pats),*);
+                            #return_value
+                        };
+                        Self::called_in(method_wrapper);
+                    }
+                },
+                Receiver::Ref => quote! {
+                    fn exposed_called_in() {
+                        use _interface::CalledInRef;
+                        let method_wrapper = |state: &Self::State, args: Self::Args| {
+                            let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
+                                #method_arg_idents
+                            > (state, #(args.#args_pats),*);
+                            #return_value
+                        };
+                        Self::called_in(method_wrapper);
+                    }
+                },
+                Receiver::Owned => quote! {
+                    fn exposed_called_in() {
+                        use _interface::CalledInOwned;
+                        let method_wrapper = |state: Self::State, args: Self::Args| {
+                            let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
+                                #method_arg_idents
+                            > (state, #(args.#args_pats),*);
+                            #return_value
+                        };
+                        Self::called_in(method_wrapper);
+                    }
+                },
+                Receiver::Stateless => quote! {
+                    fn exposed_called_in() {
+                        use _interface::CalledInStateless;
+                        let method_wrapper = |args: Self::Args| {
+                            let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
+                                #method_arg_idents
+                            > (#(args.#args_pats),*);
+                            #return_value
+                        };
+                        Self::called_in(method_wrapper);
+                    }
+                },
+            };
+
             quote! {
                 #[doc = #doc_generated]
                 #[doc = ""]
@@ -277,17 +365,27 @@ impl ImplItemMethodInfo {
                         type Return = #trait_method_mod::Return< //
                             #trait_and_method_arg_idents
                         >;
-                        type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
+                    }
 
-                        fn exposed_called_in() {
-                            let method_wrapper = |state: &mut Self::State, args: Self::Args| {
-                                let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
-                                    #method_arg_idents
-                                > (state, #(args.#args_pats),*);
-                                #return_value
-                            };
-                            Self::called_in(method_wrapper);
-                        }
+                    #[doc = #doc_generated]
+                    #[doc = ""]
+                    impl < //
+                        #(#trait_generic_lifetimes,)*
+                        #(#method_generics_lifetimes,)*
+                        #(#method_generics_types,)*
+                        #(#trait_generic_types,)*
+                        #(#trait_generic_consts,)*
+                        #(#method_generics_consts,)*
+                    > #receiver_trait_name< //
+                        _interface::Json,
+                        _interface::Json
+                    > //
+                    for  #trait_method_mod::CalledIn<#trait_and_method_arg_idents>
+                    #where_clause
+                    {
+                        type Method = fn(#receiver_state Self::Args) -> Option<Self::Return>;
+
+                        #receiver_exposed_called_in
                     }
                 }
 

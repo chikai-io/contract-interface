@@ -209,6 +209,8 @@ where
         unimplemented!()
     }
 }
+
+/*
 // created by macro
 pub mod trait_method_a_impl {
     use super::*;
@@ -281,6 +283,7 @@ pub mod trait_method_a_impl {
         }
     }
 }
+*/
 
 #[derive(Default)]
 pub struct MyU8(pub u8);
@@ -316,8 +319,8 @@ pub type A<'trait_lt, 'method_lt> = arbitrary_mod::_trait::method_a::CalledIn< /
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn my_method_b_u16() {
-    #[allow(unused_imports)]
-    A::exposed_called_in()
+    // #[allow(unused_imports)]
+    // A::exposed_called_in()
 }
 // expose!(my_method_b_u16, SpecializedMethodB)
 

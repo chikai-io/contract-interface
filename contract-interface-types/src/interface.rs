@@ -3,37 +3,131 @@ pub use call_out::CallOut;
 pub trait CalledIn<ArgsDeserialization, ReturnSerialization> {
     type State: near_sdk::borsh::BorshDeserialize + near_sdk::borsh::BorshSerialize + Default;
 
+    type Args: crate::FromBytes<ArgsDeserialization>;
+
+    type Return: crate::ToBytes<ReturnSerialization>;
+
+    fn setup_panic_hook() {
+        near_sdk::env::setup_panic_hook();
+    }
+
+    fn panic_on_deposit() {
+        if near_sdk::env::attached_deposit() != 0 {
+            near_sdk::env::panic_str("Method doesn\'t accept deposit");
+        }
+    }
+
+    fn deserialize_args_from_input() -> Self::Args {
+        use crate::FromBytes;
+        // TODO: test with method without arguments
+        let bytes = near_sdk::env::input().expect("Expected input since method has arguments.");
+        Self::Args::from_bytes(bytes.as_ref()).expect("Failed to deserialize the argument values")
+    }
+
+    fn state_read_or_default() -> Self::State {
+        near_sdk::env::state_read().unwrap_or_default()
+    }
+
+    fn may_serialize_return_as_output(result: Option<Self::Return>) {
+        if let Some(result) = result {
+            Self::serialize_return_as_output(result)
+        }
+    }
+
+    fn serialize_return_as_output(result: Self::Return) {
+        use crate::ToBytes;
+        let result = <Self::Return as ToBytes<ReturnSerialization>>::to_bytes(&result)
+            .expect("Failed to serialize the return value.");
+        near_sdk::env::value_return(&result);
+    }
+
+    fn state_write(contract: &Self::State) {
+        near_sdk::env::state_write(contract);
+    }
+}
+
+pub trait CalledInRefMut<ArgsDeserialization, ReturnSerialization>:
+    CalledIn<ArgsDeserialization, ReturnSerialization>
+{
     type Method: FnOnce(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    type Args: crate::FromBytes<ArgsDeserialization>;
+    fn called_in(method: Self::Method) {
+        Self::setup_panic_hook();
+        Self::panic_on_deposit();
+        let args = Self::deserialize_args_from_input();
+        let mut contract = Self::state_read_or_default();
+        let result = method(&mut contract, args);
+        Self::may_serialize_return_as_output(result);
+        Self::state_write(&contract);
+    }
 
-    type Return: crate::ToBytes<ReturnSerialization>;
+    fn exposed_called_in();
+}
+
+pub trait CalledInRef<ArgsDeserialization, ReturnSerialization>:
+    CalledIn<ArgsDeserialization, ReturnSerialization>
+{
+    type Method: FnOnce(&Self::State, Self::Args) -> Option<Self::Return>;
+    // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
+    // note: associated type defaults are unstable
+    // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
     fn called_in(method: Self::Method) {
-        use crate::ToBytes;
+        Self::setup_panic_hook();
+        Self::panic_on_deposit();
+        let args = Self::deserialize_args_from_input();
+        let contract = Self::state_read_or_default();
+        let result = method(&contract, args);
+        Self::may_serialize_return_as_output(result);
+        Self::state_write(&contract);
+    }
 
-        near_sdk::env::setup_panic_hook();
-        if near_sdk::env::attached_deposit() != 0 {
-            near_sdk::env::panic_str("Method doesn\'t accept deposit");
-        }
+    fn exposed_called_in();
+}
 
-        let bytes = near_sdk::env::input().expect("Expected input since method has arguments.");
+pub trait CalledInOwned<ArgsDeserialization, ReturnSerialization>:
+    CalledIn<ArgsDeserialization, ReturnSerialization>
+{
+    type Method: FnOnce(Self::State, Self::Args) -> Option<Self::Return>;
+    // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
+    // note: associated type defaults are unstable
+    // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-        use crate::FromBytes;
-        let args = Self::Args::from_bytes(bytes.as_ref())
-            .expect("Failed to deserialize the argument values");
+    fn called_in(method: Self::Method) {
+        Self::setup_panic_hook();
+        Self::panic_on_deposit();
+        let args = Self::deserialize_args_from_input();
+        let contract = Self::state_read_or_default();
+        let result = method(contract, args);
+        Self::may_serialize_return_as_output(result);
 
-        let mut contract: Self::State = near_sdk::env::state_read().unwrap_or_default();
-        let result = method(&mut contract, args);
-        if let Some(result) = result {
-            let result = <Self::Return as ToBytes<ReturnSerialization>>::to_bytes(&result)
-                .expect("Failed to serialize the return value.");
-            near_sdk::env::value_return(&result);
-        }
-        near_sdk::env::state_write(&contract);
+        // TODO: check if this write should be skipped
+        // Self::state_write(&contract);
+    }
+
+    fn exposed_called_in();
+}
+
+pub trait CalledInStateless<ArgsDeserialization, ReturnSerialization>:
+    CalledIn<ArgsDeserialization, ReturnSerialization>
+{
+    type Method: FnOnce(Self::Args) -> Option<Self::Return>;
+    // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
+    // note: associated type defaults are unstable
+    // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
+
+    fn called_in(method: Self::Method) {
+        Self::setup_panic_hook();
+        Self::panic_on_deposit();
+        let args = Self::deserialize_args_from_input();
+        let result = method(args);
+        Self::may_serialize_return_as_output(result);
+
+        // TODO: check if any form of this write should be skipped
+        // Self::state_write(&contract);
     }
 
     fn exposed_called_in();
