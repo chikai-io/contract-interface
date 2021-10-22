@@ -5,34 +5,34 @@ use super::{interface, trait4, Struct};
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn method_ref_mut_manual() {
-    use interface::CalledInRefMut;
-    trait4::method_ref_mut::CalledIn::<Struct>::exposed_called_in();
+    use interface::ServeRefMut;
+    trait4::method_ref_mut::Serve::<Struct>::extern_serve();
 }
 
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn method_ref_manual() {
-    use interface::CalledInRef;
-    trait4::method_ref::CalledIn::<Struct>::exposed_called_in();
+    use interface::ServeRef;
+    trait4::method_ref::Serve::<Struct>::extern_serve();
 }
 
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn method_owned_manual() {
-    use interface::CalledInOwned;
-    trait4::method_owned::CalledIn::<Struct>::exposed_called_in();
+    use interface::ServeOwned;
+    trait4::method_owned::Serve::<Struct>::extern_serve();
 }
 
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn method_stateless_manual() {
-    use interface::CalledInStateless;
-    trait4::method_stateless::CalledIn::<Struct>::exposed_called_in();
+    use interface::ServeStateless;
+    trait4::method_stateless::Serve::<Struct>::extern_serve();
 }
 
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn method_no_arg_manual() {
-    use interface::CalledInStateless;
-    trait4::method_no_arg::CalledIn::<Struct>::exposed_called_in();
+    use interface::ServeStateless;
+    trait4::method_no_arg::Serve::<Struct>::extern_serve();
 }

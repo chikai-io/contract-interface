@@ -271,10 +271,10 @@ impl ImplItemMethodInfo {
             };
 
             let receiver_trait_name = match receiver {
-                Receiver::RefMut => quote!(_interface::CalledInRefMut),
-                Receiver::Ref => quote!(_interface::CalledInRef),
-                Receiver::Owned => quote!(_interface::CalledInOwned),
-                Receiver::Stateless => quote!(_interface::CalledInStateless),
+                Receiver::RefMut => quote!(_interface::ServeRefMut),
+                Receiver::Ref => quote!(_interface::ServeRef),
+                Receiver::Owned => quote!(_interface::ServeOwned),
+                Receiver::Stateless => quote!(_interface::ServeStateless),
             };
 
             let receiver_state = match receiver {
@@ -284,53 +284,53 @@ impl ImplItemMethodInfo {
                 Receiver::Stateless => quote!(),
             };
 
-            let receiver_exposed_called_in = match receiver {
+            let receiver_extern_serve = match receiver {
                 Receiver::RefMut => quote! {
-                    fn exposed_called_in() {
-                        use _interface::CalledInRefMut;
+                    fn extern_serve() {
+                        use _interface::ServeRefMut;
                         let method_wrapper = |state: &mut Self::State, args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
                             > (state, #(args.#args_pats),*);
                             #return_value
                         };
-                        Self::called_in(method_wrapper);
+                        Self::serve(method_wrapper);
                     }
                 },
                 Receiver::Ref => quote! {
-                    fn exposed_called_in() {
-                        use _interface::CalledInRef;
+                    fn extern_serve() {
+                        use _interface::ServeRef;
                         let method_wrapper = |state: &Self::State, args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
                             > (state, #(args.#args_pats),*);
                             #return_value
                         };
-                        Self::called_in(method_wrapper);
+                        Self::serve(method_wrapper);
                     }
                 },
                 Receiver::Owned => quote! {
-                    fn exposed_called_in() {
-                        use _interface::CalledInOwned;
+                    fn extern_serve() {
+                        use _interface::ServeOwned;
                         let method_wrapper = |state: Self::State, args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
                             > (state, #(args.#args_pats),*);
                             #return_value
                         };
-                        Self::called_in(method_wrapper);
+                        Self::serve(method_wrapper);
                     }
                 },
                 Receiver::Stateless => quote! {
-                    fn exposed_called_in() {
-                        use _interface::CalledInStateless;
+                    fn extern_serve() {
+                        use _interface::ServeStateless;
                         let method_wrapper = |args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
                             > (#(args.#args_pats),*);
                             #return_value
                         };
-                        Self::called_in(method_wrapper);
+                        Self::serve(method_wrapper);
                     }
                 },
             };
@@ -353,11 +353,11 @@ impl ImplItemMethodInfo {
                         #(#trait_generic_types,)*
                         #(#trait_generic_consts,)*
                         #(#method_generics_consts,)*
-                    > _interface::CalledIn< //
+                    > _interface::Serve< //
                         _interface::Json,
                         _interface::Json
                     > //
-                    for  #trait_method_mod::CalledIn<#trait_and_method_arg_idents>
+                    for  #trait_method_mod::Serve<#trait_and_method_arg_idents>
                     #where_clause
                     {
                         type State = #state_ty;
@@ -380,12 +380,12 @@ impl ImplItemMethodInfo {
                         _interface::Json,
                         _interface::Json
                     > //
-                    for  #trait_method_mod::CalledIn<#trait_and_method_arg_idents>
+                    for  #trait_method_mod::Serve<#trait_and_method_arg_idents>
                     #where_clause
                     {
                         type Method = fn(#receiver_state Self::Args) -> Option<Self::Return>;
 
-                        #receiver_exposed_called_in
+                        #receiver_extern_serve
                     }
                 }
 
@@ -566,7 +566,7 @@ impl ImplItemMethodInfo {
         let serialize_args = if has_input_args {
             match &attr_signature_info.input_serializer {
                 SerializerType::Borsh => {
-                    crate::info_extractor::trait_item_method_info_called_in::TraitItemMethodInfo::generate_serialier(
+                    crate::info_extractor::trait_item_method_info_serve::TraitItemMethodInfo::generate_serialier(
                         attr_signature_info,
                         &attr_signature_info.input_serializer,
                     )

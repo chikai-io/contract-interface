@@ -44,7 +44,7 @@ pub struct RawAttrs {
     module_name: Option<syn::Ident>,
 
     /// Whether this trait's methods should potentially be
-    /// served/exposed by the generated wasm.
+    /// served/extern by the generated wasm.
     ///
     /// Use this if other users or contracts shall call or make
     /// requests to this trait's methods of your deployed wasm file.

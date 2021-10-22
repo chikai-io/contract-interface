@@ -5,7 +5,7 @@
 //! (the consumer contracts still need to define their CallOut's)
 
 use contract_interface as interface;
-use interface::CalledIn;
+use interface::Serve;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     ext_contract, // PanicOnDefault,
@@ -13,7 +13,7 @@ use near_sdk::{
 };
 
 pub mod arbitrary_mod {
-    // #[CalledIn]
+    // #[Serve]
     /// (Original Trait documentation)
     pub trait Trait< // 
         'trait_lt, 
@@ -102,7 +102,7 @@ pub mod arbitrary_mod {
             ///
             ///
             /// (Original method_a documentation)
-            pub struct CalledIn< //
+            pub struct Serve< //
                 'trait_lt,
                 'method_lt,
                 TraitType,
@@ -114,7 +114,7 @@ pub mod arbitrary_mod {
                 const TRAIT_CONST: bool,
             > {
                 _state_param: (std::marker::PhantomData<State>,),
-                _other_param: StatelessCalledIn< // 
+                _other_param: StatelessServe< // 
                     'trait_lt,
                     'method_lt,
                     TraitType,
@@ -127,7 +127,7 @@ pub mod arbitrary_mod {
             }
 
             #[derive(Default)]
-            pub struct StatelessCalledIn< //
+            pub struct StatelessServe< //
                 'trait_lt,
                 'method_lt,
                 TraitType,
@@ -174,8 +174,8 @@ impl<X> Default for Struct<X> {
 pub type TypeA = u32;
 pub type TypeB = u64;
 
-// specific (where the CalledIn "derive" must happen)
-// #[CalledIn]
+// specific (where the Serve "derive" must happen)
+// #[Serve]
 impl< //
     'trait_lt, 
     X, 
@@ -223,8 +223,8 @@ pub mod trait_method_a_impl {
         MethodTypeB, 
         const TRAIT_CONST: bool
     >
-        crate::CalledIn<interface::Json, interface::Json>
-        for arbitrary_mod::_trait::method_a::CalledIn< //
+        crate::Serve<interface::Json, interface::Json>
+        for arbitrary_mod::_trait::method_a::Serve< //
             'trait_lt,
             'method_lt,
             TraitType,
@@ -264,7 +264,7 @@ pub mod trait_method_a_impl {
         type Return = arbitrary_mod::_trait::method_a::Return<MethodTypeB>;
         type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
-        fn exposed_called_in() {
+        fn extern_serve() {
             let method_wrapper = |state: &mut Self::State, args: Self::Args| {
                 let res = <Self::State as arbitrary_mod::Trait<TraitType, TRAIT_CONST>>::method_a::<
                     MethodTypeA,
@@ -279,7 +279,7 @@ pub mod trait_method_a_impl {
                 );
                 Some(res)
             };
-            Self::called_in(method_wrapper);
+            Self::serve(method_wrapper);
         }
     }
 }
@@ -305,7 +305,7 @@ impl<'x, 'de> near_sdk::serde::de::Deserialize<'de> for &'x MyU8 {
 }
 
 // must be created by hand (struct and trait must be specialized)
-pub type A<'trait_lt, 'method_lt> = arbitrary_mod::_trait::method_a::CalledIn< //
+pub type A<'trait_lt, 'method_lt> = arbitrary_mod::_trait::method_a::Serve< //
     'trait_lt,
     'method_lt,
     (),
@@ -320,12 +320,12 @@ pub type A<'trait_lt, 'method_lt> = arbitrary_mod::_trait::method_a::CalledIn< /
 #[no_mangle]
 pub extern "C" fn my_method_b_u16() {
     // #[allow(unused_imports)]
-    // A::exposed_called_in()
+    // A::extern_serve()
 }
 // expose!(my_method_b_u16, SpecializedMethodB)
 
 // to get that specialized method's arguments/return, you can do:
-// pub type BArgs = <A as CalledIn<crate::args::Json, crate::args::Json>>::Args;
-// pub type BReturn = <A as CalledIn<crate::args::Json, crate::args::Json>>::Return;
+// pub type BArgs = <A as Serve<crate::args::Json, crate::args::Json>>::Args;
+// pub type BReturn = <A as Serve<crate::args::Json, crate::args::Json>>::Return;
 // TODO: ^check if those informations are in fact "usable"
 // eg. if it's possible to check it against a hand-rolled concrete type

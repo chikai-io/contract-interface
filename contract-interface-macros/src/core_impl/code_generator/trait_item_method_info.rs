@@ -164,7 +164,7 @@ impl TraitItemMethodInfo {
                 {
                     #( #args_forward_attrs pub #args,)*
                     #[serde(skip)]
-                    pub _phantom: CalledIn< //
+                    pub _phantom: Serve< //
                         #args_generics_idents
                     >,
                 }
@@ -181,7 +181,7 @@ impl TraitItemMethodInfo {
                     pub #return_type,
                     // phantom datas
                     #[serde(skip)]
-                    pub CalledIn< //
+                    pub Serve< //
                         #args_generics_idents
                     >
                 )
@@ -191,7 +191,7 @@ impl TraitItemMethodInfo {
                 #[doc = ""]
                 #(#attr_docs)*
                 #[derive(Default)]
-                pub struct CalledIn< //
+                pub struct Serve< //
                     #args_generics_with_bounds
                 >
                 #where_clause

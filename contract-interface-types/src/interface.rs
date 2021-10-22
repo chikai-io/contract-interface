@@ -1,6 +1,6 @@
 pub use call_out::CallOut;
 
-pub trait CalledIn<ArgsDeserialization, ReturnSerialization> {
+pub trait Serve<ArgsDeserialization, ReturnSerialization> {
     type State: near_sdk::borsh::BorshDeserialize + near_sdk::borsh::BorshSerialize + Default;
 
     type Args: crate::FromBytes<ArgsDeserialization>;
@@ -46,15 +46,15 @@ pub trait CalledIn<ArgsDeserialization, ReturnSerialization> {
     }
 }
 
-pub trait CalledInRefMut<ArgsDeserialization, ReturnSerialization>:
-    CalledIn<ArgsDeserialization, ReturnSerialization>
+pub trait ServeRefMut<ArgsDeserialization, ReturnSerialization>:
+    Serve<ArgsDeserialization, ReturnSerialization>
 {
     type Method: FnOnce(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn called_in(method: Self::Method) {
+    fn serve(method: Self::Method) {
         Self::setup_panic_hook();
         Self::panic_on_deposit();
         let args = Self::deserialize_args_from_input();
@@ -64,18 +64,18 @@ pub trait CalledInRefMut<ArgsDeserialization, ReturnSerialization>:
         Self::state_write(&contract);
     }
 
-    fn exposed_called_in();
+    fn extern_serve();
 }
 
-pub trait CalledInRef<ArgsDeserialization, ReturnSerialization>:
-    CalledIn<ArgsDeserialization, ReturnSerialization>
+pub trait ServeRef<ArgsDeserialization, ReturnSerialization>:
+    Serve<ArgsDeserialization, ReturnSerialization>
 {
     type Method: FnOnce(&Self::State, Self::Args) -> Option<Self::Return>;
     // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn called_in(method: Self::Method) {
+    fn serve(method: Self::Method) {
         Self::setup_panic_hook();
         Self::panic_on_deposit();
         let args = Self::deserialize_args_from_input();
@@ -85,18 +85,18 @@ pub trait CalledInRef<ArgsDeserialization, ReturnSerialization>:
         Self::state_write(&contract);
     }
 
-    fn exposed_called_in();
+    fn extern_serve();
 }
 
-pub trait CalledInOwned<ArgsDeserialization, ReturnSerialization>:
-    CalledIn<ArgsDeserialization, ReturnSerialization>
+pub trait ServeOwned<ArgsDeserialization, ReturnSerialization>:
+    Serve<ArgsDeserialization, ReturnSerialization>
 {
     type Method: FnOnce(Self::State, Self::Args) -> Option<Self::Return>;
     // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn called_in(method: Self::Method) {
+    fn serve(method: Self::Method) {
         Self::setup_panic_hook();
         Self::panic_on_deposit();
         let args = Self::deserialize_args_from_input();
@@ -108,18 +108,18 @@ pub trait CalledInOwned<ArgsDeserialization, ReturnSerialization>:
         // Self::state_write(&contract);
     }
 
-    fn exposed_called_in();
+    fn extern_serve();
 }
 
-pub trait CalledInStateless<ArgsDeserialization, ReturnSerialization>:
-    CalledIn<ArgsDeserialization, ReturnSerialization>
+pub trait ServeStateless<ArgsDeserialization, ReturnSerialization>:
+    Serve<ArgsDeserialization, ReturnSerialization>
 {
     type Method: FnOnce(Self::Args) -> Option<Self::Return>;
     // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn called_in(method: Self::Method) {
+    fn serve(method: Self::Method) {
         Self::setup_panic_hook();
         Self::panic_on_deposit();
         let args = Self::deserialize_args_from_input();
@@ -130,7 +130,7 @@ pub trait CalledInStateless<ArgsDeserialization, ReturnSerialization>:
         // Self::state_write(&contract);
     }
 
-    fn exposed_called_in();
+    fn extern_serve();
 }
 
 pub mod call_out {

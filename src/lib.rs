@@ -1,7 +1,7 @@
 pub use contract_interface_macros::contract;
 pub use contract_interface_types::{
-    borsh, call_out, json, Borsh, CallOut, CalledIn, CalledInOwned, CalledInRef, CalledInRefMut,
-    CalledInStateless, FromBytes, Json, ToBytes,
+    borsh, call_out, json, Borsh, CallOut, FromBytes, Json, Serve, ServeOwned, ServeRef,
+    ServeRefMut, ServeStateless, ToBytes,
 };
 
 pub mod example_01;
