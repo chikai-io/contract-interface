@@ -4,3 +4,4 @@ pub use contract_interface_types::{
 };
 
 pub mod call_in_01;
+pub mod expanded_test;

@@ -20,6 +20,18 @@ impl ImplItemMethodInfo {
         let self_ty = &impl_info.self_ty;
 
         let doc_generated = if let Some(trait_path) = &impl_info.trait_path {
+            let mut trait_path_no_generics = trait_path.clone();
+            let mut _last_segment =
+                trait_path_no_generics
+                    .segments
+                    .iter_mut()
+                    .rev()
+                    .next()
+                    .map(|s| {
+                        s.arguments = syn::PathArguments::None;
+                        s
+                    });
+
             // https://github.com/rust-lang/rust/issues/74563
             //
             // TODO: currently it's not possible to link directly to
@@ -27,7 +39,7 @@ impl ImplItemMethodInfo {
             // the trait and the struct are referred
             format!(
                 " Generated code based on the implementation of [`{}::{}()`] for [`{}`].",
-                quote! {#trait_path},
+                quote! {#trait_path_no_generics},
                 quote! {#original_method_ident},
                 quote! {#self_ty}
             )
@@ -133,7 +145,7 @@ impl ImplItemMethodInfo {
             let method_generics_lifetimes = self.generics.lifetimes.keys().collect::<Vec<_>>();
             let method_generics_types = self.generics.types.keys().collect::<Vec<_>>();
             let method_generics_consts = self.generics.consts.keys().collect::<Vec<_>>();
-            let trait_and_methods_arg_idents = quote! {
+            let trait_and_method_arg_idents = quote! {
                 #(#trait_generics_lifetimes_idents,)*
                 #(#method_generics_lifetimes,)*
                 #state_ty
@@ -141,6 +153,20 @@ impl ImplItemMethodInfo {
                 #(,#trait_generics_type_or_const_idents)*
                 #(,#trait_generics_const_exprs)*
                 #(,#method_generics_consts)*
+            };
+            let method_arg_idents = quote! {
+                // https://github.com/rust-lang/rust/issues/42868
+                // TODO: if the function has any late-bound lifetime
+                // parameter, then specifying lifetimes is forbidden.
+                // if there are only early-bounds and they must be
+                // specified, then it could be possible to add an
+                // attribute to the impl method item, so that it can
+                // indicate wether to exclude (or not-exclude)
+                // lifetime params on the method
+                //
+                // #(#method_generics_lifetimes,)*
+                #(#method_generics_types,)*
+                #(#method_generics_consts,)*
             };
 
             let trait_mod = if let Some(trait_mod) = &impl_info.attrs.trait_mod_path {
@@ -167,6 +193,60 @@ impl ImplItemMethodInfo {
                 .map(|a| a.arg.pat.as_ref())
                 .collect::<Vec<_>>();
 
+            let where_clause = {
+                let state_ty_as_ident = syn::Ident::new(
+                    &quote!(#state_ty).to_string(),
+                    proc_macro2::Span::call_site(),
+                );
+                let impl_generics = impl_info
+                    .generics
+                    .clone()
+                    .replace_from_self_to_ident(&state_ty_as_ident);
+                let method_generics = self
+                    .generics
+                    .clone()
+                    .replace_from_self_to_ident(&state_ty_as_ident);
+                let impl_lifetime_where_clauses =
+                    impl_generics.lifetime_bounds.values().collect::<Vec<_>>();
+                let impl_type_where_clauses =
+                    impl_generics.type_bounds.values().collect::<Vec<_>>();
+
+                let method_lifetime_where_clauses =
+                    method_generics.lifetime_bounds.values().collect::<Vec<_>>();
+                let method_type_where_clauses =
+                    method_generics.type_bounds.values().collect::<Vec<_>>();
+
+                quote! {
+                    where
+                        // implicit bound is not required since it was
+                        // already implicitly added as a method's bound
+                        #(#impl_lifetime_where_clauses,)*
+                        #(#method_lifetime_where_clauses,)*
+                        #(#method_type_where_clauses,)*
+                        #(#impl_type_where_clauses,)*
+                }
+            };
+
+            let (return_ident, return_type, return_value) = match &self.ret {
+                syn::ReturnType::Default => (
+                    //
+                    quote!(()),
+                    quote!(()),
+                    quote!(None),
+                ),
+                syn::ReturnType::Type(_t, ty) => (
+                    //
+                    quote!(ret),
+                    quote!(#ty),
+                    quote! {
+                        let ret = #trait_method_mod::Return::<
+                            #trait_and_method_arg_idents
+                        >(ret, Default::default());
+                        Some(ret)
+                    },
+                ),
+            };
+
             quote! {
                 #[doc = #doc_generated]
                 #[doc = ""]
@@ -189,16 +269,22 @@ impl ImplItemMethodInfo {
                         _interface::Json,
                         _interface::Json
                     > //
-                    for  #trait_method_mod::CalledIn<#trait_and_methods_arg_idents> {
+                    for  #trait_method_mod::CalledIn<#trait_and_method_arg_idents>
+                    #where_clause
+                    {
                         type State = #state_ty;
-                        type Args = #trait_method_mod::Args<#trait_and_methods_arg_idents>;
-                        type Return = #trait_method_mod::Return<()>;
+                        type Args = #trait_method_mod::Args<#trait_and_method_arg_idents>;
+                        type Return = #trait_method_mod::Return< //
+                            #trait_and_method_arg_idents
+                        >;
                         type Method = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
                         fn exposed_called_in() {
                             let method_wrapper = |state: &mut Self::State, args: Self::Args| {
-                                let () = <Self::State as #trait_path>::#original_method_ident(state, #(args.#args_pats),*);
-                                None
+                                let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
+                                    #method_arg_idents
+                                > (state, #(args.#args_pats),*);
+                                #return_value
                             };
                             Self::called_in(method_wrapper);
                         }

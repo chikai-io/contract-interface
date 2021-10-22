@@ -97,7 +97,7 @@ impl TraitItemMethodInfo {
 
         let method_lifetime_where_clauses =
             self.generics.lifetime_bounds.values().collect::<Vec<_>>();
-        let method_type_where_clauses = self.generics.lifetime_bounds.values().collect::<Vec<_>>();
+        let method_type_where_clauses = self.generics.type_bounds.values().collect::<Vec<_>>();
 
         let where_clause = quote! {
             where
@@ -109,28 +109,6 @@ impl TraitItemMethodInfo {
                 #(#method_type_where_clauses,)*
                 #(#trait_type_where_clauses,)*
         };
-
-        /*
-        let ident = &self.attr_sig_info.ident;
-        let ident_byte_str = &self.ident_byte_str;
-        let pat_type_list = self.attr_sig_info.pat_type_list();
-        let serialize = TraitItemMethodInfo::generate_serialier(
-            &self.attr_sig_info,
-            &self.attr_sig_info.result_serializer,
-        );
-        quote! {
-            pub fn #ident(#pat_type_list __account_id: AccountId, __balance: near_sdk::Balance, __gas: near_sdk::Gas) -> near_sdk::Promise {
-                #serialize
-                near_sdk::Promise::new(__account_id)
-                .function_call(
-                    #ident_byte_str.to_string(),
-                    args,
-                    __balance,
-                    __gas,
-                )
-            }
-        }
-        */
 
         let near_sdk = crate::crate_name("near-sdk")?;
 
@@ -158,6 +136,11 @@ impl TraitItemMethodInfo {
             " Generated code based on [`{}::{}()`].",
             &trait_info.original_ident, original_method_name
         );
+
+        let return_type = match &self.ret {
+            syn::ReturnType::Default => quote! {()},
+            syn::ReturnType::Type(_t, ty) => quote! {#ty},
+        };
 
         let q = Ok(quote! {
             #[doc = #mod_doc_msg]
@@ -189,7 +172,20 @@ impl TraitItemMethodInfo {
                 #[doc = #mod_doc_msg]
                 #[doc = ""]
                 #(#attr_docs)*
-                pub type Return<Z> = Z;
+                #[derive(_near_sdk::serde::Serialize)]
+                #[serde(crate = "_near_sdk::serde")]
+                #[serde(transparent)]
+                pub struct Return< //
+                    #args_generics_with_bounds
+                >(
+                    pub #return_type,
+                    // phantom datas
+                    #[serde(skip)]
+                    pub CalledIn< //
+                        #args_generics_idents
+                    >
+                )
+                #where_clause;
 
                 #[doc = #mod_doc_msg]
                 #[doc = ""]
@@ -221,32 +217,5 @@ impl TraitItemMethodInfo {
         // panic!("{}", q.unwrap());
 
         q
-    }
-
-    pub fn generate_serialier(
-        attr_sig_info: &AttrSigInfo,
-        serializer: &SerializerType,
-    ) -> error::Result<TokenStream2> {
-        let has_input_args = attr_sig_info.input_args().next().is_some();
-        if !has_input_args {
-            return Ok(quote! { let args = vec![]; });
-        }
-        let struct_decl = attr_sig_info.input_struct(InputStructType::Serialization)?;
-        let constructor_call = attr_sig_info.constructor_expr()?;
-        let constructor = quote! { let args = #constructor_call; };
-        let value_ser = match serializer {
-            SerializerType::JSON => quote! {
-                let args = near_sdk::serde_json::to_vec(&args).expect("Failed to serialize the cross contract args using JSON.");
-            },
-            SerializerType::Borsh => quote! {
-                let args = near_sdk::borsh::BorshSerialize::try_to_vec(&args).expect("Failed to serialize the cross contract args using Borsh.");
-            },
-        };
-
-        Ok(quote! {
-          #struct_decl
-          #constructor
-          #value_ser
-        })
     }
 }

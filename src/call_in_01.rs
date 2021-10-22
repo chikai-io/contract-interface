@@ -1,6 +1,8 @@
 //! Example of defining an contract to be called by consumer contracts.
 //! (the consumer contracts still need to define their CallOut's)
 
+use std::marker::PhantomData;
+
 use crate as interface;
 
 use interface::{contract, CalledIn};
@@ -17,7 +19,7 @@ pub trait Trait3< //
         const TRAIT_CONST: bool
 >: Clone
 where 
-TraitType: near_sdk::serde::de::DeserializeOwned + Sized
+TraitType: near_sdk::serde::de::DeserializeOwned + Sized + Default
 {
     /// (TRAIT_INTERNAL_CONST Doc)
     const TRAIT_INTERNAL_CONST: bool;
@@ -48,6 +50,7 @@ TraitType: near_sdk::serde::de::DeserializeOwned + Sized
     where
         TraitType: 'trait_lt,
         MethodTypeA: Default,
+        MethodTypeB: Default + near_sdk::serde::Serialize,
     {
         unimplemented!()
     }
@@ -65,11 +68,12 @@ pub trait Trait4 {
 }
 
 /// (Impl Trait3 for Struct Doc).
-// #[contract(mod = "struct_2", trait = "trait_3")]
+#[contract(mod = "struct_2", trait = "trait_3")]
 impl<
         //
         'trait_lt,
         TraitType: std::fmt::Debug,
+        // TraitType: std::fmt::Debug + near_sdk::serde::de::DeserializeOwned,
         const TRAIT_CONST: bool,
     >
     Trait3<
@@ -79,7 +83,8 @@ impl<
         TRAIT_CONST,
     > for Struct //
 
-    where TraitType: near_sdk::serde::de::DeserializeOwned
+    where TraitType: near_sdk::serde::de::DeserializeOwned + Default,
+    
 {
     /// (TRAIT_INTERNAL_CONST Doc)
     const TRAIT_INTERNAL_CONST: bool = true;
@@ -105,6 +110,7 @@ impl<
         Self: Trait3<'trait_lt, TraitType, TRAIT_CONST>,
         TraitType: 'trait_lt,
         MethodTypeA: Default,
+        MethodTypeB: Default + near_sdk::serde::Serialize,
     {
         unimplemented!()
     }
@@ -114,7 +120,7 @@ impl<
 #[contract(mod = "struct_", trait = "trait4")]
 impl Trait4 for Struct {
     /// (Impl method_a Doc).
-    fn method_a(&mut self, my_bool: bool) -> () {
+    fn method_a(&mut self, my_bool: bool)  {
         unimplemented!()
     }
 }

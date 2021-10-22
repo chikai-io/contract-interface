@@ -21,6 +21,20 @@ pub(crate) struct ImplContractArgs {
     name: syn::Ident,
 }
 
+// TODO: describe all places where the attribute can be applied,
+// their overall objectives/customization.
+// TODO: add examples.
+// TODO: possibly have a module for documentation-only.
+//
+/// When applied in a root item such as a trait or on an impl item,
+/// this macro generates a `mod` containing contract-related information.
+///
+/// It also searches for more `#[contract]` attributes on inner items,
+/// such as on methods or their arguments, which can configure the
+/// generated code.
+///
+/// To see detailed information of the generated items, it is recommended
+/// to generate and open the documentation of your project.
 #[proc_macro_attribute]
 pub fn contract(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr_args = syn::parse_macro_input!(attr as syn::AttributeArgs);

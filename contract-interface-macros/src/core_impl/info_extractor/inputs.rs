@@ -18,25 +18,18 @@ pub struct Arg {
     pub arg: syn::PatType,
 }
 
+/// Attributes for a single argument.
 #[derive(Debug, FromMeta)]
 pub struct RawAttrs {
+    /// Forward attributes to be attached into the `Args` structure.
     #[darling(rename = "attr", default)]
     pub forward_attr: Option<syn::Meta>,
-    // #[darling(rename = "attr", default)]
-    // pub forward_attr: Option<bool>,
-
-    // #[darling(default, rename = "mod")]
-    // method_mod_name: Option<syn::Ident>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Attrs {
+    /// Forward attributes to be attached into the `Args` structure.
     pub forward_attr: Vec<syn::NestedMeta>,
-    // #[darling(rename = "attr", default)]
-    // pub forward_attr: Option<bool>,
-
-    // #[darling(default, rename = "mod")]
-    // method_mod_name: Option<syn::Ident>,
 }
 
 impl Inputs {
@@ -71,6 +64,7 @@ impl Inputs {
                         // TODO: also check if works with multiple inner attrs
                         // eg. #[contract(attr(.., ..))]
                         let attrs = RawAttrs::from_list(&nested)?;
+
                         let attrs = if let Some(fa) = attrs.forward_attr {
                             let nested = meta_attrs::remove_first_layer(vec![fa], "attr")?;
 

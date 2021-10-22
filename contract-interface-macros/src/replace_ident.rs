@@ -6,9 +6,16 @@ pub trait ReplaceIdent {
 /// searching every place in which that substitution could happen.
 pub fn replace_ident_from_self_to_state<T: ReplaceIdent>(t: &mut T) {
     use proc_macro2::Span;
-    let _self = syn::Ident::new("Self", Span::call_site());
     let _state = syn::Ident::new("_State", Span::call_site());
-    t.replace_ident(&_self, &_state);
+    replace_ident_from_self_to_ident(t, &_state)
+}
+
+/// Replaces all and any identifier `Self` into `_State`, recursively
+/// searching every place in which that substitution could happen.
+pub fn replace_ident_from_self_to_ident<T: ReplaceIdent>(t: &mut T, ident: &syn::Ident) {
+    use proc_macro2::Span;
+    let _self = syn::Ident::new("Self", Span::call_site());
+    t.replace_ident(&_self, ident);
 }
 
 impl ReplaceIdent for syn::PatBox {

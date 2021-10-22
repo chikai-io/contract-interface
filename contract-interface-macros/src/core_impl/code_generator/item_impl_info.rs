@@ -21,6 +21,18 @@ impl ItemImplInfo {
         let original_doc_msg = format!(" For usage as a contract, see [`{}`].", struct_mod_name);
 
         let doc_generated = if let Some(trait_path) = &self.trait_path {
+            let mut trait_path_no_generics = trait_path.clone();
+            let mut _last_segment =
+                trait_path_no_generics
+                    .segments
+                    .iter_mut()
+                    .rev()
+                    .next()
+                    .map(|s| {
+                        s.arguments = syn::PathArguments::None;
+                        s
+                    });
+
             // https://github.com/rust-lang/rust/issues/74563
             //
             // TODO: currently it's not possible to link directly to
@@ -28,7 +40,7 @@ impl ItemImplInfo {
             // the trait and the struct are referred
             format!(
                 " Generated code based on an implementation of [`{}`] for [`{}`].",
-                quote! {#trait_path},
+                quote! {#trait_path_no_generics},
                 quote! {#self_ty}
             )
         } else {

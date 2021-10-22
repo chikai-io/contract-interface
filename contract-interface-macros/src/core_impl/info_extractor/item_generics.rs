@@ -1,7 +1,8 @@
+use crate::replace_ident::replace_ident_from_self_to_ident;
 use crate::replace_ident::replace_ident_from_self_to_state;
 
 /// Generics for vairous kinds of items.  
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Generics {
     /// The item's lifetimes generics.  
     /// eg. `trait Trait<'a> {}`.
@@ -87,24 +88,29 @@ impl Generics {
         }
     }
     pub fn replace_from_self_to_state(mut self) -> Self {
+        use proc_macro2::Span;
+        let _state = syn::Ident::new("_State", Span::call_site());
+        self.replace_from_self_to_ident(&_state)
+    }
+    pub fn replace_from_self_to_ident(mut self, ident: &syn::Ident) -> Self {
         for tp in self.types.values_mut() {
             for b in tp.bounds.iter_mut() {
                 // for `T: Trait<Self>` case
-                replace_ident_from_self_to_state(b);
+                replace_ident_from_self_to_ident(b, ident);
             }
             if let Some(d) = tp.default.as_mut() {
                 // for `T: Trait<Item=Self>` case
-                replace_ident_from_self_to_state(d)
+                replace_ident_from_self_to_ident(d, ident)
             }
         }
 
         let mut new_type_bounds = indexmap::IndexMap::new();
         for pt in self.type_bounds.values_mut() {
             // for `Self: Trait` cases
-            replace_ident_from_self_to_state(&mut pt.bounded_ty);
+            replace_ident_from_self_to_ident(&mut pt.bounded_ty, ident);
             for b in pt.bounds.iter_mut() {
                 // for `T: Trait<Self>` cases
-                replace_ident_from_self_to_state(b);
+                replace_ident_from_self_to_ident(b, ident);
             }
 
             new_type_bounds.insert(pt.bounded_ty.clone(), pt.clone());

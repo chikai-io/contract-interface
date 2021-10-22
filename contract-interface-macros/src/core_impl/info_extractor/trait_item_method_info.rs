@@ -2,6 +2,7 @@ use super::inputs::Inputs;
 use super::item_generics::Generics;
 use super::meta_attrs;
 use crate::error;
+use crate::replace_ident::replace_ident_from_self_to_state;
 use darling::FromMeta;
 
 /// Information extracted from trait method.
@@ -17,13 +18,8 @@ pub struct TraitItemMethodInfo {
     pub generics: Generics,
 
     pub inputs: Inputs,
-    // pub args: indexmap::IndexMap<syn::Ident, syn::PatType>,
-    // pub args_sets: ArgsSets,
-    //
-    // /// Attributes and signature information.
-    // pub attr_sig_info: AttrSigInfo,
-    // /// String representation of method name, e.g. `"my_method"`.
-    // pub ident_byte_str: LitStr,
+
+    pub ret: syn::ReturnType,
 }
 
 #[derive(Debug, FromMeta)]
@@ -32,6 +28,10 @@ pub struct RawAttrs {
     /// the generated items.
     #[darling(default, rename = "mod")]
     method_mod_name: Option<syn::Ident>,
+
+    /// Forward attributes to be attached into the `Return` structure.
+    #[darling(default)]
+    return_attr: Option<syn::Meta>,
 }
 
 #[derive(Debug)]
@@ -58,9 +58,8 @@ impl TraitItemMethodInfo {
 
         let inputs = Inputs::new(original.sig.inputs.iter_mut())?.replace_from_self_to_state();
 
-        // let attr_sig_info = AttrSigInfo::new(attrs, sig)?;
-
-        // let ident_byte_str = LitStr::new(&attr_sig_info.ident.to_string(), Span::call_site());
+        let mut ret: syn::ReturnType = original.sig.output.clone();
+        replace_ident_from_self_to_state(&mut ret);
 
         Ok(Self {
             original: original.clone(),
@@ -69,9 +68,7 @@ impl TraitItemMethodInfo {
             forward_attrs,
             generics,
             inputs,
-            // args_sets,
-            // attr_sig_info,
-            // ident_byte_str
+            ret,
         })
     }
 }
