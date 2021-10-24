@@ -7,8 +7,61 @@ use darling::FromMeta;
 pub struct Inputs {
     /// The `self`, or `&mut self`, or `&self` part.
     pub receiver: Option<syn::Receiver>,
+    pub receiver_kind: ReceiverKind,
 
     pub args: Vec<Arg>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ReceiverKind {
+    RefMut,
+    Ref,
+    Owned,
+    Stateless,
+}
+
+impl From<Option<syn::Receiver>> for ReceiverKind {
+    fn from(r: Option<syn::Receiver>) -> Self {
+        match r {
+            Some(r) => match (r.reference.is_some(), r.mutability.is_some()) {
+                (true, true) => ReceiverKind::RefMut,
+                (true, false) => ReceiverKind::Ref,
+                (false, true) => ReceiverKind::Owned,
+                (false, false) => ReceiverKind::Owned,
+            },
+            None => ReceiverKind::Stateless,
+        }
+    }
+}
+
+impl ReceiverKind {
+    pub fn quote_trait_name(&self) -> proc_macro2::TokenStream {
+        use quote::quote;
+        match self {
+            ReceiverKind::RefMut => quote!(_interface::ServeRefMut),
+            ReceiverKind::Ref => quote!(_interface::ServeRef),
+            ReceiverKind::Owned => quote!(_interface::ServeOwned),
+            ReceiverKind::Stateless => quote!(_interface::ServeStateless),
+        }
+    }
+    pub fn quote_trait_link(&self) -> proc_macro2::TokenStream {
+        use quote::quote;
+        match self {
+            ReceiverKind::RefMut => quote!([ServeRefMut](_interface::ServeRefMut)),
+            ReceiverKind::Ref => quote!([ServeRef](_interface::ServeRef)),
+            ReceiverKind::Owned => quote!([ServeOwned](_interface::ServeOwned)),
+            ReceiverKind::Stateless => quote!([ServeStateless](_interface::ServeStateless)),
+        }
+    }
+    pub fn quote_self_argument(&self) -> proc_macro2::TokenStream {
+        use quote::quote;
+        match self {
+            ReceiverKind::RefMut => quote!(&mut Self::State,),
+            ReceiverKind::Ref => quote!(&Self::State,),
+            ReceiverKind::Owned => quote!(Self::State,),
+            ReceiverKind::Stateless => quote!(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -96,11 +149,16 @@ impl Inputs {
                 }
             }
         }
+        let receiver_kind = receiver.clone().into();
 
-        Ok(Self { receiver, args })
+        Ok(Self {
+            receiver,
+            receiver_kind,
+            args,
+        })
     }
 
-    pub fn replace_from_self_to_state<'a>(mut self) -> Self {
+    pub fn replace_from_self_to_state(mut self) -> Self {
         for pty in self.args.iter_mut() {
             replace_ident_from_self_to_state(&mut pty.arg);
         }

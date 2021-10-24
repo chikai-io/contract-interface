@@ -3,7 +3,7 @@ use crate::core_impl::info_extractor::{
     MethodType, SerializerType,
 };
 use crate::error;
-use crate::info_extractor::item_impl_info::ItemImplInfo;
+use crate::info_extractor::{inputs, item_impl_info::ItemImplInfo};
 use quote::quote;
 use syn::export::TokenStream2;
 use syn::{ReturnType, Signature};
@@ -187,7 +187,6 @@ impl ImplItemMethodInfo {
             let trait_generic_types = &impl_info.generics.types.values().collect::<Vec<_>>();
             let trait_generic_consts = &impl_info.generics.consts.values().collect::<Vec<_>>();
 
-            // TODO: not needed
             // TODO: test various patterns as arguments
             // eg. (a, b): (bool, u8),
             let args_pats = self
@@ -251,41 +250,11 @@ impl ImplItemMethodInfo {
                 ),
             };
 
-            #[derive(Debug, Clone)]
-            enum Receiver {
-                RefMut,
-                Ref,
-                Owned,
-                Stateless,
-            }
-
-            // TODO: move to info gathering
-            let receiver = match &self.inputs.receiver {
-                Some(r) => match (r.reference.is_some(), r.mutability.is_some()) {
-                    (true, true) => Receiver::RefMut,
-                    (true, false) => Receiver::Ref,
-                    (false, true) => Receiver::Owned,
-                    (false, false) => Receiver::Owned,
-                },
-                None => Receiver::Stateless,
-            };
-
-            let receiver_trait_name = match receiver {
-                Receiver::RefMut => quote!(_interface::ServeRefMut),
-                Receiver::Ref => quote!(_interface::ServeRef),
-                Receiver::Owned => quote!(_interface::ServeOwned),
-                Receiver::Stateless => quote!(_interface::ServeStateless),
-            };
-
-            let receiver_state = match receiver {
-                Receiver::RefMut => quote!(&mut Self::State,),
-                Receiver::Ref => quote!(&Self::State,),
-                Receiver::Owned => quote!(Self::State,),
-                Receiver::Stateless => quote!(),
-            };
-
-            let receiver_extern_serve = match receiver {
-                Receiver::RefMut => quote! {
+            let receiver_kind = &self.inputs.receiver_kind;
+            let receiver_kind_trait_name = receiver_kind.quote_trait_name();
+            let receiver_kind_state = receiver_kind.quote_self_argument();
+            let receiver_kind_extern_serve = match receiver_kind {
+                inputs::ReceiverKind::RefMut => quote! {
                     fn extern_serve() {
                         use _interface::ServeRefMut;
                         let method_wrapper = |state: &mut Self::State, args: Self::Args| {
@@ -297,7 +266,7 @@ impl ImplItemMethodInfo {
                         Self::serve(method_wrapper);
                     }
                 },
-                Receiver::Ref => quote! {
+                inputs::ReceiverKind::Ref => quote! {
                     fn extern_serve() {
                         use _interface::ServeRef;
                         let method_wrapper = |state: &Self::State, args: Self::Args| {
@@ -309,7 +278,7 @@ impl ImplItemMethodInfo {
                         Self::serve(method_wrapper);
                     }
                 },
-                Receiver::Owned => quote! {
+                inputs::ReceiverKind::Owned => quote! {
                     fn extern_serve() {
                         use _interface::ServeOwned;
                         let method_wrapper = |state: Self::State, args: Self::Args| {
@@ -321,7 +290,7 @@ impl ImplItemMethodInfo {
                         Self::serve(method_wrapper);
                     }
                 },
-                Receiver::Stateless => quote! {
+                inputs::ReceiverKind::Stateless => quote! {
                     fn extern_serve() {
                         use _interface::ServeStateless;
                         let method_wrapper = |args: Self::Args| {
@@ -357,7 +326,7 @@ impl ImplItemMethodInfo {
                         _interface::Json,
                         _interface::Json
                     > //
-                    for  #trait_method_mod::Serve<#trait_and_method_arg_idents>
+                    for  #trait_method_mod::serve::Serve<#trait_and_method_arg_idents>
                     #where_clause
                     {
                         type State = #state_ty;
@@ -376,16 +345,16 @@ impl ImplItemMethodInfo {
                         #(#trait_generic_types,)*
                         #(#trait_generic_consts,)*
                         #(#method_generics_consts,)*
-                    > #receiver_trait_name< //
+                    > #receiver_kind_trait_name< //
                         _interface::Json,
                         _interface::Json
                     > //
-                    for  #trait_method_mod::Serve<#trait_and_method_arg_idents>
+                    for  #trait_method_mod::serve::Serve<#trait_and_method_arg_idents>
                     #where_clause
                     {
-                        type Method = fn(#receiver_state Self::Args) -> Option<Self::Return>;
+                        type Method = fn(#receiver_kind_state Self::Args) -> Option<Self::Return>;
 
-                        #receiver_extern_serve
+                        #receiver_kind_extern_serve
                     }
                 }
 

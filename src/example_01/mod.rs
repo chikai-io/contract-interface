@@ -1,4 +1,5 @@
 pub mod api;
+pub mod client;
 
 use crate as interface;
 use interface::contract;
