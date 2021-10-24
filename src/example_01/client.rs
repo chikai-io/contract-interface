@@ -1,12 +1,11 @@
-use super::{interface, trait4, Struct};
+use super::struct_;
 
-fn client_example() {
-    use trait4::method_ref_mut::request::Request;
-    // Request::contract("addr".parse().unwrap());
+pub fn client_example() {
+    use struct_::method_ref_mut::Request;
 
-    // _trait_a::method_a::Request::contract("my.contract".parse().unwrap())
-    //     .args(String::from("my_value"))
-    //     .send_amount(0)
-    //     .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
-    //     .call_out();
+    let _promise = Request::contract("account.id".parse().unwrap())
+        .args(true)
+        .send_amount(0)
+        .prepaid_gas(near_sdk::Gas::from(0))
+        .request();
 }

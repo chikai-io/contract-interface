@@ -28,7 +28,7 @@ pub trait Trait3< //
         const TRAIT_CONST: bool
 >: Clone
 where 
-TraitType: near_sdk::serde::de::DeserializeOwned + Sized + Default
+TraitType: near_sdk::serde::Serialize + near_sdk::serde::de::DeserializeOwned + Sized + Default
 {
     /// (TRAIT_INTERNAL_CONST Doc)
     const TRAIT_INTERNAL_CONST: bool;
@@ -81,7 +81,7 @@ impl<
         TRAIT_CONST,
     > for Struct //
 
-    where TraitType: near_sdk::serde::de::DeserializeOwned + Default,
+    where TraitType: near_sdk::serde::Serialize + near_sdk::serde::de::DeserializeOwned + Default,
     
 {
     /// (TRAIT_INTERNAL_CONST Doc)

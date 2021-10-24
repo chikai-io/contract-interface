@@ -44,13 +44,12 @@ impl ReceiverKind {
             ReceiverKind::Stateless => quote!(_interface::ServeStateless),
         }
     }
-    pub fn quote_trait_link(&self) -> proc_macro2::TokenStream {
-        use quote::quote;
+    pub fn quote_trait_link_str(&self) -> &str {
         match self {
-            ReceiverKind::RefMut => quote!([ServeRefMut](_interface::ServeRefMut)),
-            ReceiverKind::Ref => quote!([ServeRef](_interface::ServeRef)),
-            ReceiverKind::Owned => quote!([ServeOwned](_interface::ServeOwned)),
-            ReceiverKind::Stateless => quote!([ServeStateless](_interface::ServeStateless)),
+            ReceiverKind::RefMut => "[`ServeRefMut`](_interface::ServeRefMut)",
+            ReceiverKind::Ref => "[`ServeRef`](_interface::ServeRef)",
+            ReceiverKind::Owned => "[`ServeOwned`](_interface::ServeOwned)",
+            ReceiverKind::Stateless => "[`ServeStateless`](_interface::ServeStateless)",
         }
     }
     pub fn quote_self_argument(&self) -> proc_macro2::TokenStream {

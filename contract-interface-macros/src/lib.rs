@@ -77,6 +77,17 @@ fn contract_internal(
     }
 }
 
+fn crate_name_str(name: &str) -> Result<String> {
+    use proc_macro_crate::FoundCrate;
+    let name = match proc_macro_crate::crate_name(name)
+        .map_err(|e| syn::Error::new(Span::call_site(), e))?
+    {
+        FoundCrate::Itself => "crate".into(),
+        FoundCrate::Name(name) => name,
+    };
+    Ok(name)
+}
+
 fn crate_name(name: &str) -> Result<syn::Ident> {
     use proc_macro_crate::FoundCrate;
     let name = match proc_macro_crate::crate_name(name)

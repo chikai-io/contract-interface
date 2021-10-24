@@ -18,6 +18,7 @@ impl ImplItemMethodInfo {
         let internal_interface = crate::crate_name("contract-interface")?;
 
         let self_ty = &impl_info.self_ty;
+        let self_ty_str = format!("{}", quote!(#self_ty));
 
         let doc_generated = if let Some(trait_path) = &impl_info.trait_path {
             let mut trait_path_no_generics = trait_path.clone();
@@ -58,6 +59,7 @@ impl ImplItemMethodInfo {
 
         let method_mod_name = &self.attrs.module_name;
         let attr_docs = &self.doc_attrs;
+
         // Ok(quote! {})
 
         let state_ty = &impl_info.self_ty;
@@ -181,6 +183,17 @@ impl ImplItemMethodInfo {
             };
 
             let trait_method_mod = quote!(#trait_mod::#method_mod_name);
+            let trait_method_mod_serve_str = format!(
+                "{}::{}::Serve",
+                quote!(#trait_mod),
+                quote!(#method_mod_name)
+            );
+            let trait_method_mod_request_str = format!(
+                "{}::{}::Request",
+                quote!(#trait_mod),
+                quote!(#method_mod_name)
+            );
+            let args_link_str = format!("{}::Args", quote!(#trait_method_mod));
 
             let trait_generic_lifetimes =
                 &impl_info.generics.lifetimes.values().collect::<Vec<_>>();
@@ -315,6 +328,9 @@ impl ImplItemMethodInfo {
 
                     #[doc = #doc_generated]
                     #[doc = ""]
+                    #[doc = " This implementation defines some typing information required by [`interface::Serve`](_interface::Serve)."]
+                    #[doc = ""]
+                    #(#attr_docs)*
                     impl < //
                         #(#trait_generic_lifetimes,)*
                         #(#method_generics_lifetimes,)*
@@ -338,6 +354,11 @@ impl ImplItemMethodInfo {
 
                     #[doc = #doc_generated]
                     #[doc = ""]
+                    #[doc = " This implementation prepares the [`Args`]("]
+                    #[doc = #args_link_str]
+                    #[doc = ") that will be sent into the method."]
+                    #[doc = ""]
+                    #(#attr_docs)*
                     impl < //
                         #(#trait_generic_lifetimes,)*
                         #(#method_generics_lifetimes,)*
@@ -356,6 +377,42 @@ impl ImplItemMethodInfo {
 
                         #receiver_kind_extern_serve
                     }
+
+                    #[doc = #doc_generated]
+                    #[doc = ""]
+                    #[doc = " Specializes the `_State` of [`"]
+                    #[doc = #trait_method_mod_serve_str]
+                    #[doc = "`] as the struct [`"]
+                    #[doc = #self_ty_str]
+                    #[doc = ".  "]
+                    #[doc = ""]
+                    #(#attr_docs)*
+                    pub type Serve<
+                        #(#trait_generic_lifetimes,)*
+                        #(#method_generics_lifetimes,)*
+                        #(#method_generics_types,)*
+                        #(#trait_generic_types,)*
+                        #(#trait_generic_consts,)*
+                        #(#method_generics_consts,)*
+                    > = #trait_method_mod::serve::Serve<#trait_and_method_arg_idents>;
+
+                    #[doc = #doc_generated]
+                    #[doc = ""]
+                    #[doc = " Specializes the `_State` of [`"]
+                    #[doc = #trait_method_mod_request_str]
+                    #[doc = "`] as the struct [`"]
+                    #[doc = #self_ty_str]
+                    #[doc = "`].  "]
+                    #[doc = ""]
+                    #(#attr_docs)*
+                    pub type Request<
+                        #(#trait_generic_lifetimes,)*
+                        #(#method_generics_lifetimes,)*
+                        #(#method_generics_types,)*
+                        #(#trait_generic_types,)*
+                        #(#trait_generic_consts,)*
+                        #(#method_generics_consts,)*
+                    > = #trait_method_mod::request::Request<#trait_and_method_arg_idents>;
                 }
 
             }

@@ -115,6 +115,12 @@ impl TraitItemMethodInfo {
         };
 
         let near_sdk = crate::crate_name("near-sdk")?;
+        let near_sdk_str = crate::crate_name_str("near-sdk")?;
+        let account_id_str = format!("{}::AccountId", &near_sdk_str);
+        let balance_str = format!("{}::Balance", &near_sdk_str);
+        let gas_str = format!("{}::Gas", &near_sdk_str);
+        let promise_str = format!("{}::Promise", &near_sdk_str);
+        let promise_function_call_str = format!("{}::Promise::function_call()", &near_sdk_str);
 
         let args_generics_with_bounds = quote! {
             #(#args_trait_lifetimes,)*
@@ -153,7 +159,7 @@ impl TraitItemMethodInfo {
 
         let receiver_kind = &self.inputs.receiver_kind;
         // let receiver_kind_trait_name = receiver_kind.quote_trait_name();
-        let receiver_kind_trait_link = format!("{}", receiver_kind.quote_trait_link());
+        let receiver_kind_trait_link_str = receiver_kind.quote_trait_link_str();
         // let receiver_kind_state = receiver_kind.quote_self_argument();
 
         let args_pats = self
@@ -174,6 +180,7 @@ impl TraitItemMethodInfo {
                 use #internal_interface as _interface;
 
                 pub use serve::Serve;
+                pub use request::Request;
 
                 #[doc = #mod_doc_str]
                 #[doc = ""]
@@ -181,7 +188,7 @@ impl TraitItemMethodInfo {
                 #[doc = #method_link_dot_str]
                 #[doc = ""]
                 #(#attr_docs)*
-                #[derive(_near_sdk::serde::Deserialize)]
+                #[derive(_near_sdk::serde::Serialize, _near_sdk::serde::Deserialize)]
                 #[serde(crate = "_near_sdk::serde")]
                 pub struct
                 Args< //
@@ -244,10 +251,10 @@ impl TraitItemMethodInfo {
                     #[doc = #method_link_str]
                     #[doc = ", ie. making an `extern \"C\"` wasm function from it,"]
                     #[doc = " [`Serve`] should implement "]
-                    #[doc = #receiver_kind_trait_link]
-                    #[doc = ", which can be derived from an implementation of "]
+                    #[doc = #receiver_kind_trait_link_str]
+                    #[doc = ", which can be derived from an implementation of [`"]
                     #[doc = #trait_name_str]
-                    #[doc = " for the server contract struct."]
+                    #[doc = "`] for the server contract struct."]
                     #[doc = ""]
                     #(#attr_docs)*
                     #[derive(Default)]
@@ -284,7 +291,9 @@ impl TraitItemMethodInfo {
                     #[doc = ""]
                     #[doc = #builder_doc_str]
                     #[doc = ""]
-                    #[doc = " This represents a request where [the contract](_near_sdk::AccountId) and method being called"]
+                    #[doc = " This represents a request where [the contract]("]
+                    #[doc = #account_id_str]
+                    #[doc = ") and (possibly) the method being called"]
                     #[doc = " still need to be defined."]
                     #[doc = ""]
                     #(#attr_docs)*
@@ -299,12 +308,14 @@ impl TraitItemMethodInfo {
                         #[doc = ""]
                         #[doc = #builder_doc_str]
                         #[doc = ""]
-                        #[doc = " Sets the `contract_being_called` ([AccountId](_near_sdk::AccountId))"]
+                        #[doc = " Sets the `contract_being_called` ([AccountId]("]
+                        #[doc = #account_id_str]
+                        #[doc = "))"]
                         #[doc = " and the `method_name` (`"]
                         #[doc = #method_name_str]
                         #[doc = "`) being called."]
                         #[doc = ""]
-                        #[doc = " See also [`contract_with_renamed_method()`] if the method's name has been renamed."]
+                        #[doc = " See also [`Self::contract_with_renamed_method()`] if the method's name has been renamed."]
                         #(#attr_docs)*
                         pub fn contract(contract_being_called: _near_sdk::AccountId) -> MethodRequest<#args_generics_idents> {
                             MethodRequest {
@@ -318,10 +329,12 @@ impl TraitItemMethodInfo {
                         #[doc = ""]
                         #[doc = #builder_doc_str]
                         #[doc = ""]
-                        #[doc = " Sets the `contract_being_called` ([AccountId](_near_sdk::AccountId))"]
+                        #[doc = " Sets the `contract_being_called` ([`AccountId`]("]
+                        #[doc = #account_id_str]
+                        #[doc = "))"]
                         #[doc = " and the `method_name` being called."]
                         #[doc = ""]
-                        #[doc = " See also [`contract()`] if the method's name has not been renamed."]
+                        #[doc = " See also [`Self::contract()`] if the method's name has not been renamed."]
                         #[doc = ""]
                         #(#attr_docs)*
                         pub fn contract_with_renamed_method(contract_being_called: _near_sdk::AccountId, method_name: String) -> MethodRequest<#args_generics_idents> {
@@ -374,8 +387,12 @@ impl TraitItemMethodInfo {
                     #[doc = ""]
                     #[doc = #builder_doc_str]
                     #[doc = ""]
-                    #[doc = " This represents a request where the [amount of Near](_near_sdk::Balance) to be sent and"]
-                    #[doc = " the [gas quantity](_near_sdk::Gas) to be attached still need to be defined."]
+                    #[doc = " This represents a request where the [amount of `Near`]("]
+                    #[doc = #balance_str]
+                    #[doc = ") to be sent and"]
+                    #[doc = " the [`Gas` quantity]("]
+                    #[doc = #gas_str]
+                    #[doc = ") to be attached still need to be defined."]
                     #[doc = ""]
                     #(#attr_docs)*
                     pub struct ArgsRequest<#args_generics_with_bounds>
@@ -405,7 +422,9 @@ impl TraitItemMethodInfo {
                         #[doc = ""]
                         #[doc = #builder_doc_str]
                         #[doc = ""]
-                        #[doc = " Sets the [amount of Near](_near_sdk::Balance) to be sent for the call."]
+                        #[doc = " Sets the [amount of `Near`]("]
+                        #[doc = #balance_str]
+                        #[doc = ") to be sent for the call."]
                         #[doc = ""]
                         #(#attr_docs)*
                         pub fn send_amount(self, send_amount: _near_sdk::Balance) -> AmountRequest<#args_generics_idents> {
@@ -421,8 +440,12 @@ impl TraitItemMethodInfo {
                         #[doc = ""]
                         #[doc = #builder_doc_str]
                         #[doc = ""]
-                        #[doc = " Sets the [Gas quantity](_near_sdk::Gas) to be attached for the call,"]
-                        #[doc = " while also setting the [amount of Near](_near_sdk::Balance) to be sent to zero."]
+                        #[doc = " Sets the [`Gas` quantity]("]
+                        #[doc = #gas_str]
+                        #[doc = ") to be attached for the call,"]
+                        #[doc = " while also setting the [amount of `Near`]("]
+                        #[doc = #balance_str]
+                        #[doc = ") to be sent to zero."]
                         #[doc = ""]
                         #(#attr_docs)*
                         pub fn prepaid_gas(self, maximum_allowed_consumption: _near_sdk::Gas) -> GasRequest<#args_generics_idents> {
@@ -440,8 +463,9 @@ impl TraitItemMethodInfo {
                     #[doc = ""]
                     #[doc = #builder_doc_str]
                     #[doc = ""]
-                    #[doc = " This represents a request where the [gas quantity](_near_sdk::Gas) to be attached"]
-                    #[doc = " still need to be defined."]
+                    #[doc = " This represents a request where the [`Gas` quantity]("]
+                    #[doc = #gas_str]
+                    #[doc = ") to be attached still need to be defined."]
                     #[doc = ""]
                     #(#attr_docs)*
                     pub struct AmountRequest<#args_generics_with_bounds>
@@ -460,7 +484,9 @@ impl TraitItemMethodInfo {
                         #[doc = ""]
                         #[doc = #builder_doc_str]
                         #[doc = ""]
-                        #[doc = " Sets the [Gas quantity](_near_sdk::Gas) to be attached for the call."]
+                        #[doc = " Sets the [`Gas` quantity]("]
+                        #[doc = #gas_str]
+                        #[doc = ") to be attached for the call."]
                         #[doc = ""]
                         #(#attr_docs)*
                         pub fn prepaid_gas(self, maximum_allowed_consumption: _near_sdk::Gas) -> GasRequest<#args_generics_idents> {
@@ -502,8 +528,12 @@ impl TraitItemMethodInfo {
                         #[doc = ""]
                         #[doc = " Sends the request into the server contract."]
                         #[doc = ""]
-                        #[doc = " Creates a [Promise](_near_sdk::Promise) with a "]
-                        #[doc = " [function_call()](_near_sdk::Promise::function_call) to the server contract."]
+                        #[doc = " Creates a [`Promise`]("]
+                        #[doc = #promise_str]
+                        #[doc = ") with a "]
+                        #[doc = " [`function_call()`]("]
+                        #[doc = #promise_function_call_str]
+                        #[doc = ") to the server contract."]
                         #[doc = ""]
                         #(#attr_docs)*
                         pub fn request(self) -> _near_sdk::Promise {

@@ -42,7 +42,7 @@ pub fn example() {
         .call_out();
 
     // specialized builder
-    _trait_a::method_a::CallOut::contract("my.contract".parse().unwrap())
+    _trait_a::method_a::Request::contract("my.contract".parse().unwrap())
         .args(String::from("my_value"))
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
@@ -98,13 +98,13 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct CallOut;
-        impl CallOut {
+        pub struct Request;
+        impl Request {
             /// Builder for calling the `set_status1` method on a contract.
             ///
             /// (Original method_a documentation)
-            pub fn contract(contract_being_called: AccountId) -> MethodCallOut {
-                MethodCallOut {
+            pub fn contract(contract_being_called: AccountId) -> MethodRequest {
+                MethodRequest {
                     contract_being_called,
                     method_name: method_name().to_string(),
                 }
@@ -114,12 +114,12 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct MethodCallOut {
+        pub struct MethodRequest {
             contract_being_called: AccountId,
             method_name: String,
         }
 
-        impl MethodCallOut {
+        impl MethodRequest {
             // For treating the arguments, there are two possibilities:
             // to utilize a generic interface::ArgsCall, or to re-define a
             // specialized ArgsCall (together with AmountCall and GasCall).
@@ -133,9 +133,9 @@ pub mod _trait_a {
             /// Informs the arguments (except for `self`) that `set_status1` should receive.
             ///
             /// (Original method_a documentation)
-            pub fn args(self, message: String) -> ArgsCallOut {
+            pub fn args(self, message: String) -> ArgsRequest {
                 let args = Args { my_string: message };
-                ArgsCallOut::new(self.method_name, self.contract_being_called, args)
+                ArgsRequest::new(self.method_name, self.contract_being_called, args)
             }
 
             pub fn into_generic(self) -> call_out::MethodCallOut {
@@ -144,7 +144,7 @@ pub mod _trait_a {
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::MethodCallOut> for MethodCallOut {
+        impl Into<call_out::MethodCallOut> for MethodRequest {
             fn into(self) -> call_out::MethodCallOut {
                 call_out::CallOut::contract(self.contract_being_called).method(self.method_name)
             }
@@ -152,13 +152,13 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct ArgsCallOut {
+        pub struct ArgsRequest {
             method_name: String,
             contract_being_called: AccountId,
             args: Args,
         }
 
-        impl ArgsCallOut {
+        impl ArgsRequest {
             pub fn new(method_name: String, contract_being_called: AccountId, args: Args) -> Self {
                 Self {
                     method_name,
@@ -170,8 +170,8 @@ pub mod _trait_a {
             ///
             ///
             /// (Original method_a documentation)   
-            pub fn send_amount(self, send_amount: Balance) -> AmountCallOut {
-                AmountCallOut {
+            pub fn send_amount(self, send_amount: Balance) -> AmountRequest {
+                AmountRequest {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
                     args: self.args,
@@ -182,8 +182,8 @@ pub mod _trait_a {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut {
-                GasCallOut {
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasRequest {
+                GasRequest {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
                     args: self.args,
@@ -198,7 +198,7 @@ pub mod _trait_a {
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::ArgsCallOut<Args, interface::Json>> for ArgsCallOut {
+        impl Into<call_out::ArgsCallOut<Args, interface::Json>> for ArgsRequest {
             fn into(self) -> call_out::ArgsCallOut<Args, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
@@ -209,19 +209,19 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct AmountCallOut {
+        pub struct AmountRequest {
             method_name: String,
             contract_being_called: AccountId,
             args: Args,
             send_amount: Balance,
         }
 
-        impl AmountCallOut {
+        impl AmountRequest {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut {
-                GasCallOut {
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasRequest {
+                GasRequest {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
                     args: self.args,
@@ -236,7 +236,7 @@ pub mod _trait_a {
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::AmountCallOut<Args, interface::Json>> for AmountCallOut {
+        impl Into<call_out::AmountCallOut<Args, interface::Json>> for AmountRequest {
             fn into(self) -> call_out::AmountCallOut<Args, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
@@ -248,7 +248,7 @@ pub mod _trait_a {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct GasCallOut {
+        pub struct GasRequest {
             method_name: String,
             contract_being_called: AccountId,
             args: Args,
@@ -256,7 +256,7 @@ pub mod _trait_a {
             prepaid_gas: Gas,
         }
 
-        impl GasCallOut {
+        impl GasRequest {
             ///
             ///
             /// (Original method_a documentation)
@@ -278,7 +278,7 @@ pub mod _trait_a {
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::GasCallOut<Args, interface::Json>> for GasCallOut {
+        impl Into<call_out::GasCallOut<Args, interface::Json>> for GasRequest {
             fn into(self) -> call_out::GasCallOut<Args, interface::Json> {
                 call_out::CallOut::contract(self.contract_being_called)
                     .method(self.method_name)
