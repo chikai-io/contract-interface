@@ -60,11 +60,11 @@ fn contract_internal(
             info_extractor::item_impl_info::ItemImplInfo::new(&mut item_impl, attr_args)?;
         let generated_code = item_impl_info.wrapper_code()?;
         // Add helper type for simulation testing only if not wasm32
-        let marshalled_code = item_impl_info.marshall_code()?;
+        // let marshalled_code = item_impl_info.marshall_code()?;
         Ok(TokenStream::from(quote! {
             // #item_impl
             #generated_code
-            #marshalled_code
+            // #marshalled_code
         }))
     }
     // invalid root #[contract] attribute attachment

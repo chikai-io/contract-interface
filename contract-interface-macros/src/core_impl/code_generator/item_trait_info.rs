@@ -1,7 +1,7 @@
 use crate::core_impl::info_extractor::item_trait_info::ItemTraitInfo;
 use crate::error;
+use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::export::TokenStream2;
 
 impl ItemTraitInfo {
     /// Generate code that wrapps external calls.

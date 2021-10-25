@@ -50,7 +50,7 @@ impl TraitItemMethodInfo {
         let attrs = Attrs {
             method_mod_name: raw_attrs.method_mod_name.unwrap_or_else(|| {
                 let res = original.sig.ident.to_string();
-                syn::Ident::new(&res, syn::export::Span::call_site())
+                syn::Ident::new(&res, proc_macro2::Span::call_site())
             }),
         };
 

@@ -57,15 +57,14 @@ pub struct Attrs {
     /// requests to this struct/trait's methods of your deployed
     /// wasm file.
     #[darling(default)]
-    serve: bool,
-
-    /// Whether this struct/trait's methods should potentially be
-    /// callable by the generated wasm.
-    ///
-    /// Use this if you intend to make requests into a deployed
-    /// contract that is serving this struct/trait's methods.
-    #[darling(default)]
-    request: bool,
+    pub serve: Option<bool>,
+    // /// Whether this struct/trait's methods should potentially be
+    // /// callable by the generated wasm.
+    // ///
+    // /// Use this if you intend to make requests into a deployed
+    // /// contract that is serving this struct/trait's methods.
+    // #[darling(default)]
+    // pub request: bool,
 }
 
 #[derive(Debug)]

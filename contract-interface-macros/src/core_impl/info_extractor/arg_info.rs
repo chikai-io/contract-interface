@@ -1,7 +1,7 @@
 use super::serializer_attr::SerializerAttr;
 use super::SerializerType;
+use proc_macro2::Span;
 use quote::ToTokens;
-use syn::export::Span;
 use syn::{Attribute, Error, Ident, Pat, PatType, Token, Type};
 
 pub enum BindgenArgType {

@@ -48,7 +48,7 @@ impl ImplItemMethodInfo {
         let attrs = Attrs {
             module_name: raw_attrs.module_name.unwrap_or_else(|| {
                 let res = original.sig.ident.to_string();
-                syn::Ident::new(&res, syn::export::Span::call_site())
+                syn::Ident::new(&res, proc_macro2::Span::call_site())
             }),
         };
 

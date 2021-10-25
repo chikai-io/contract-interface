@@ -1,7 +1,7 @@
 use crate::error;
 use crate::info_extractor::item_impl_info::ItemImplInfo;
+use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::export::TokenStream2;
 use syn::Ident;
 
 impl ItemImplInfo {
@@ -71,23 +71,23 @@ impl ItemImplInfo {
     }
 
     // TODO
-    pub fn marshall_code(&self) -> error::Result<TokenStream2> {
-        use quote::{format_ident, quote, ToTokens};
-        let orig_name = self.self_ty.clone().into_token_stream();
-        let mut name = quote! {Contract};
-        if let Ok(input) = syn::parse::<Ident>(orig_name.into()) {
-            let new_name = format_ident!("{}Contract", input);
-            name = quote! {#new_name};
-        };
-        let mut res = TokenStream2::new();
-        for (_ident, method) in &self.items.methods {
-            res.extend(method.marshal_method());
-        }
-        Ok(quote! {
-         #[cfg(not(target_arch = "wasm32"))]
-         impl #name {
-           #res
-         }
-        })
-    }
+    // pub fn marshall_code(&self) -> error::Result<TokenStream2> {
+    //     use quote::{format_ident, quote, ToTokens};
+    //     let orig_name = self.self_ty.clone().into_token_stream();
+    //     let mut name = quote! {Contract};
+    //     if let Ok(input) = syn::parse::<Ident>(orig_name.into()) {
+    //         let new_name = format_ident!("{}Contract", input);
+    //         name = quote! {#new_name};
+    //     };
+    //     let mut res = TokenStream2::new();
+    //     for (_ident, method) in &self.items.methods {
+    //         res.extend(method.marshal_method());
+    //     }
+    //     Ok(quote! {
+    //      #[cfg(not(target_arch = "wasm32"))]
+    //      impl #name {
+    //        #res
+    //      }
+    //     })
+    // }
 }
