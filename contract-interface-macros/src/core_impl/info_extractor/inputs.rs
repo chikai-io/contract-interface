@@ -100,8 +100,6 @@ impl Inputs {
                     pty.attrs.clear();
                     pty.attrs = non_contract_attr;
 
-                    // let tokens = contract_attr.iter().map(|a| a.tokens.parse).collect::<Vec<_>>();
-
                     let attr = {
                         let meta_attrs = meta_attrs::into_meta_attrs(contract_attr.clone())?;
                         let nested =

@@ -85,7 +85,7 @@ impl ImplItemMethodInfo {
                 }),
                 init: attrs.init,
                 payable: matches!(attrs.payable, Some(true)),
-                private: matches!(attrs.payable, Some(true)),
+                private: matches!(attrs.private, Some(true)),
                 allow_temporary_state: matches!(attrs.allow_temporary_state, Some(true)),
             }
         };
