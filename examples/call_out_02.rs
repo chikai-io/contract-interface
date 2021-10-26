@@ -30,7 +30,7 @@ pub fn example() {
     // );
 
     // generic builder
-    interface::CallOut::contract("my.contract".parse().unwrap())
+    interface::Request::contract("my.contract".parse().unwrap())
         .method(String::from("set_status1"))
         .args(interface::json::named::NamedJson1::new(
             String::from("message"),
@@ -38,17 +38,17 @@ pub fn example() {
         ))
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
-        .call_out();
+        .request();
 
     let my_x = true;
     let my_y = 1u8;
     let my_type = 5u16;
     // specialized builder
-    _trait::method_a::CallOut::contract("my.contract".parse().unwrap())
+    _trait::method_a::Request::contract("my.contract".parse().unwrap())
         .args(String::from("my_value"), my_x, my_y, my_type)
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
-        .call_out();
+        .request();
 }
 
 // example on how a macro-generated code could look like
@@ -63,7 +63,7 @@ pub mod _trait {
     /// (Original method_a documentation)
     pub mod method_a {
         use contract_interface as interface;
-        use interface::call_out;
+        use interface::request;
         use near_sdk::serde::{Deserialize, Serialize};
         use near_sdk::{AccountId, Balance, Gas};
 
@@ -86,13 +86,13 @@ pub mod _trait {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct CallOut;
-        impl CallOut {
+        pub struct Request;
+        impl Request {
             /// Builder for calling the `method_a` method on a contract.
             ///
             /// (Original method_a documentation)
-            pub fn contract(contract_being_called: AccountId) -> MethodCallOut {
-                MethodCallOut {
+            pub fn contract(contract_being_called: AccountId) -> MethodRequest {
+                MethodRequest {
                     contract_being_called,
                     method_name: method_name().to_string(),
                 }
@@ -102,12 +102,12 @@ pub mod _trait {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct MethodCallOut {
+        pub struct MethodRequest {
             contract_being_called: AccountId,
             method_name: String,
         }
 
-        impl MethodCallOut {
+        impl MethodRequest {
             // For treating the arguments, there are two possibilities:
             // to utilize a generic interface::ArgsCall, or to re-define a
             // specialized ArgsCall (together with AmountCall and GasCall).
@@ -127,37 +127,37 @@ pub mod _trait {
                 my_x: X,
                 my_y: Y,
                 my_type: MyType,
-            ) -> ArgsCallOut<X, MyType, Y> {
+            ) -> ArgsRequest<X, MyType, Y> {
                 let args = Args::<X, MyType, Y> {
                     message,
                     my_x,
                     my_y,
                     my_type,
                 };
-                ArgsCallOut::new(self.method_name, self.contract_being_called, args)
+                ArgsRequest::new(self.method_name, self.contract_being_called, args)
             }
 
-            pub fn into_generic(self) -> call_out::MethodCallOut {
+            pub fn into_generic(self) -> request::MethodRequest {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::MethodCallOut> for MethodCallOut {
-            fn into(self) -> call_out::MethodCallOut {
-                call_out::CallOut::contract(self.contract_being_called).method(self.method_name)
+        impl Into<request::MethodRequest> for MethodRequest {
+            fn into(self) -> request::MethodRequest {
+                request::Request::contract(self.contract_being_called).method(self.method_name)
             }
         }
         ///
         ///
         /// (Original method_a documentation)
-        pub struct ArgsCallOut<X, MyType, Y> {
+        pub struct ArgsRequest<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
             args: Args<X, MyType, Y>,
         }
 
-        impl<X, MyType, Y> ArgsCallOut<X, MyType, Y> {
+        impl<X, MyType, Y> ArgsRequest<X, MyType, Y> {
             pub fn new(
                 method_name: String,
                 contract_being_called: AccountId,
@@ -173,8 +173,8 @@ pub mod _trait {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn send_amount(self, send_amount: Balance) -> AmountCallOut<X, MyType, Y> {
-                AmountCallOut {
+            pub fn send_amount(self, send_amount: Balance) -> AmountRequest<X, MyType, Y> {
+                AmountRequest {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
                     args: self.args,
@@ -185,8 +185,8 @@ pub mod _trait {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut<X, MyType, Y> {
-                GasCallOut {
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasRequest<X, MyType, Y> {
+                GasRequest {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
                     args: self.args,
@@ -195,19 +195,17 @@ pub mod _trait {
                 }
             }
 
-            pub fn into_generic(
-                self,
-            ) -> call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json> {
+            pub fn into_generic(self) -> request::ArgsRequest<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl<X, MyType, Y> Into<call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json>>
-            for ArgsCallOut<X, MyType, Y>
+        impl<X, MyType, Y> Into<request::ArgsRequest<Args<X, MyType, Y>, interface::Json>>
+            for ArgsRequest<X, MyType, Y>
         {
-            fn into(self) -> call_out::ArgsCallOut<Args<X, MyType, Y>, interface::Json> {
-                call_out::CallOut::contract(self.contract_being_called)
+            fn into(self) -> request::ArgsRequest<Args<X, MyType, Y>, interface::Json> {
+                request::Request::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
             }
@@ -216,19 +214,19 @@ pub mod _trait {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct AmountCallOut<X, MyType, Y> {
+        pub struct AmountRequest<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
             args: Args<X, MyType, Y>,
             send_amount: Balance,
         }
 
-        impl<X, MyType, Y> AmountCallOut<X, MyType, Y> {
+        impl<X, MyType, Y> AmountRequest<X, MyType, Y> {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasCallOut<X, MyType, Y> {
-                GasCallOut {
+            pub fn prepaid_gas(self, maximum_allowed_consumption: Gas) -> GasRequest<X, MyType, Y> {
+                GasRequest {
                     method_name: self.method_name,
                     contract_being_called: self.contract_being_called,
                     args: self.args,
@@ -239,17 +237,17 @@ pub mod _trait {
 
             pub fn into_generic(
                 self,
-            ) -> call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json> {
+            ) -> request::AmountRequest<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl<X, MyType, Y> Into<call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json>>
-            for AmountCallOut<X, MyType, Y>
+        impl<X, MyType, Y> Into<request::AmountRequest<Args<X, MyType, Y>, interface::Json>>
+            for AmountRequest<X, MyType, Y>
         {
-            fn into(self) -> call_out::AmountCallOut<Args<X, MyType, Y>, interface::Json> {
-                call_out::CallOut::contract(self.contract_being_called)
+            fn into(self) -> request::AmountRequest<Args<X, MyType, Y>, interface::Json> {
+                request::Request::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
                     .send_amount(self.send_amount)
@@ -259,7 +257,7 @@ pub mod _trait {
         ///
         ///
         /// (Original method_a documentation)
-        pub struct GasCallOut<X, MyType, Y> {
+        pub struct GasRequest<X, MyType, Y> {
             method_name: String,
             contract_being_called: AccountId,
             args: Args<X, MyType, Y>,
@@ -267,14 +265,14 @@ pub mod _trait {
             prepaid_gas: Gas,
         }
 
-        impl<X, MyType, Y> GasCallOut<X, MyType, Y>
+        impl<X, MyType, Y> GasRequest<X, MyType, Y>
         where
             Args<X, MyType, Y>: interface::ToBytes<interface::Json>,
         {
             ///
             ///
             /// (Original method_a documentation)
-            pub fn call_out(self) {
+            pub fn request(self) {
                 use interface::ToBytes;
                 near_sdk::Promise::new(self.contract_being_called).function_call(
                     self.method_name.to_string(),
@@ -285,17 +283,17 @@ pub mod _trait {
                 );
             }
 
-            pub fn into_generic(self) -> call_out::GasCallOut<Args<X, MyType, Y>, interface::Json> {
+            pub fn into_generic(self) -> request::GasRequest<Args<X, MyType, Y>, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl<X, MyType, Y> Into<call_out::GasCallOut<Args<X, MyType, Y>, interface::Json>>
-            for GasCallOut<X, MyType, Y>
+        impl<X, MyType, Y> Into<request::GasRequest<Args<X, MyType, Y>, interface::Json>>
+            for GasRequest<X, MyType, Y>
         {
-            fn into(self) -> call_out::GasCallOut<Args<X, MyType, Y>, interface::Json> {
-                call_out::CallOut::contract(self.contract_being_called)
+            fn into(self) -> request::GasRequest<Args<X, MyType, Y>, interface::Json> {
+                request::Request::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
                     .send_amount(self.send_amount)

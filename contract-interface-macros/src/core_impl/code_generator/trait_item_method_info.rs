@@ -169,6 +169,46 @@ impl TraitItemMethodInfo {
             .map(|a| a.arg.pat.as_ref())
             .collect::<Vec<_>>();
 
+        let return_serializer = {
+            use crate::core_impl::info_extractor::inputs;
+            let recv_kind = &self.inputs.receiver_kind;
+            if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+                quote! {
+                    #[derive(_near_sdk::borsh::BorshSerialize)]
+                }
+            } else {
+                quote! {
+                    #[derive(_near_sdk::serde::Serialize)]
+                    #[serde(crate = "_near_sdk::serde")]
+                    #[serde(transparent)]
+                }
+            }
+        };
+        let return_serializer_skip = {
+            use crate::core_impl::info_extractor::inputs;
+            let recv_kind = &self.inputs.receiver_kind;
+            if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+                quote! {
+                    #[borsh_skip]
+                }
+            } else {
+                quote! {
+                    #[serde(skip)]
+                }
+            }
+        };
+        let return_serializer_bounds = {
+            use crate::core_impl::info_extractor::inputs;
+            let recv_kind = &self.inputs.receiver_kind;
+            if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+                quote! {
+                    _State: near_sdk::borsh::BorshSerialize
+                }
+            } else {
+                quote!()
+            }
+        };
+
         let q = Ok(quote! {
             #[doc = #mod_doc_str]
             #[doc = ""]
@@ -221,20 +261,20 @@ impl TraitItemMethodInfo {
                 #[doc = #method_link_dot_str]
                 #[doc = ""]
                 #(#attr_docs)*
-                #[derive(_near_sdk::serde::Serialize)]
-                #[serde(crate = "_near_sdk::serde")]
-                #[serde(transparent)]
+                #return_serializer
                 pub struct Return< //
                     #args_generics_with_bounds
-                >(
-                    pub #return_type,
+                >
+                #where_clause
+                #return_serializer_bounds
+                {
+                    pub value: #return_type,
                     // phantom datas
-                    #[serde(skip)]
-                    pub serve::Serve< //
+                    #return_serializer_skip
+                    pub _phantom: serve::Serve< //
                         #args_generics_idents
                     >
-                )
-                #where_clause;
+                }
 
                 #[doc = #mod_doc_str]
                 #[doc = ""]

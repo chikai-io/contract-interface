@@ -95,10 +95,6 @@ impl Inputs {
                     receiver = Some(r.clone())
                 }
                 syn::FnArg::Typed(pty) => {
-                    // TODO: use darling
-                    // it appears that darling doesn't work with
-                    // attributes on method args
-
                     let (contract_attr, non_contract_attr) =
                         meta_attrs::partition_attrs(&pty.attrs, "contract");
                     pty.attrs.clear();

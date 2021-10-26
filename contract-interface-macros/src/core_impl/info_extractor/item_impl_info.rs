@@ -29,7 +29,7 @@ pub struct ItemImplInfo {
 }
 
 #[derive(Debug, FromMeta)]
-pub struct Attrs {
+pub struct RawAttrs {
     /// The name that will be used for the module that will contain
     /// the generated items.
     #[darling(rename = "mod")]
@@ -65,6 +65,34 @@ pub struct Attrs {
     // /// contract that is serving this struct/trait's methods.
     // #[darling(default)]
     // pub request: bool,
+}
+
+pub struct Attrs {
+    /// The name that will be used for the module that will contain
+    /// the generated items.
+    pub module_name: syn::Ident,
+
+    // TODO: decide if this attribute is necessary
+    // (may still be useful, even with `serve` set,
+    // to check that no default implementation is being used)
+    //
+    /// The path to the module (generated from the trait) being
+    /// implemented.
+    ///
+    /// Use this if you intend to specialize the state of the items
+    /// from that module.  
+    ///
+    /// To define the generated module's items independently,
+    /// you can still set the `serve` attribute.
+    pub trait_mod_path: Option<syn::Path>,
+
+    /// Whether this struct/trait's methods should potentially be
+    /// served/extern by the generated wasm.
+    ///
+    /// Use this if other users or contracts shall call or make
+    /// requests to this struct/trait's methods of your deployed
+    /// wasm file.
+    pub serve: bool,
 }
 
 #[derive(Debug)]
@@ -132,8 +160,13 @@ impl ItemImplInfo {
         attr_args: syn::AttributeArgs,
     ) -> error::Result<Self> {
         let (attrs, forward_attrs) =
-            meta_attrs::meta_attrs::<Attrs>(&original.attrs, attr_args, "contract")?;
+            meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, attr_args, "contract")?;
         let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
+        let attrs = Attrs {
+            module_name: attrs.module_name,
+            trait_mod_path: attrs.trait_mod_path,
+            serve: matches!(attrs.serve, Some(true) | None),
+        };
 
         let generics = Generics::new(&original.generics);
 

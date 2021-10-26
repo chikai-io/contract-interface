@@ -29,6 +29,10 @@ pub struct RawAttrs {
     #[darling(default, rename = "mod")]
     method_mod_name: Option<syn::Ident>,
 
+    /// Forward attributes to be attached into the `Args` structure.
+    #[darling(default)]
+    args_attr: Option<syn::Meta>,
+
     /// Forward attributes to be attached into the `Return` structure.
     #[darling(default)]
     return_attr: Option<syn::Meta>,
@@ -39,19 +43,49 @@ pub struct Attrs {
     /// The name that will be used for the module that will contain
     /// the generated items.
     pub method_mod_name: syn::Ident,
+
+    // TODO: use value on code gen
+    /// Forward attributes to be attached into the `Args` structure.
+    args_attr: Vec<syn::NestedMeta>,
+
+    // TODO: use value on code gen
+    /// Forward attributes to be attached into the `Return` structure.
+    return_attr: Vec<syn::NestedMeta>,
 }
 
 impl TraitItemMethodInfo {
     pub fn new(original: &mut syn::TraitItemMethod) -> error::Result<Self> {
-        let (raw_attrs, forward_attrs) =
-            meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, vec![], "contract")?;
+        let (contract_attr, non_contract_attr) =
+            meta_attrs::partition_attrs(&original.attrs, "contract");
+        original.attrs.clear();
+        original.attrs = non_contract_attr;
         let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
 
-        let attrs = Attrs {
-            method_mod_name: raw_attrs.method_mod_name.unwrap_or_else(|| {
-                let res = original.sig.ident.to_string();
-                syn::Ident::new(&res, proc_macro2::Span::call_site())
-            }),
+        let attrs = {
+            let meta_attrs = meta_attrs::into_meta_attrs(contract_attr)?;
+            let nested = meta_attrs::remove_first_layer(meta_attrs, "contract")?;
+
+            let attrs = RawAttrs::from_list(&nested)?;
+
+            let args_attr = if let Some(fa) = attrs.args_attr {
+                meta_attrs::remove_first_layer(vec![fa], "args_attr")?
+            } else {
+                vec![]
+            };
+            let return_attr = if let Some(fa) = attrs.return_attr {
+                meta_attrs::remove_first_layer(vec![fa], "return_attr")?
+            } else {
+                vec![]
+            };
+
+            Attrs {
+                method_mod_name: attrs.method_mod_name.unwrap_or_else(|| {
+                    let res = original.sig.ident.to_string();
+                    syn::Ident::new(&res, proc_macro2::Span::call_site())
+                }),
+                args_attr,
+                return_attr,
+            }
         };
 
         let generics = Generics::new(&original.sig.generics).replace_from_self_to_state();

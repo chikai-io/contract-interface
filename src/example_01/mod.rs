@@ -1,5 +1,5 @@
-pub mod api;
-pub mod client;
+// pub mod api;
+// pub mod client;
 
 use crate as interface;
 use interface::contract;
@@ -27,7 +27,7 @@ pub trait Trait4 {
     fn method_ref(&self, my_bool: bool) {
         unimplemented!()
     }
-    fn method_owned(self, my_bool: bool)
+    fn method_owned(self, my_bool: bool) -> Self
     where
         Self: Sized,
     {
@@ -36,7 +36,7 @@ pub trait Trait4 {
     fn method_stateless(my_bool: bool) {
         unimplemented!()
     }
-    fn method_state_only(self)
+    fn method_state_only(self) -> Self
     where
         Self: Sized,
     {
@@ -60,7 +60,7 @@ impl Trait4 for Struct {
         unimplemented!()
     }
     /// (Impl method_owned Doc).
-    fn method_owned(self, my_bool: bool)
+    fn method_owned(self, my_bool: bool) -> Self
     where
         Self: Sized,
     {
@@ -71,7 +71,7 @@ impl Trait4 for Struct {
         unimplemented!()
     }
     // / (Impl method_no_arg Doc).
-    fn method_state_only(self)
+    fn method_state_only(self) -> Self
     where
         Self: Sized,
     {

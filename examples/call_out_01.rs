@@ -31,7 +31,7 @@ pub fn example() {
     );
 
     // generic builder
-    interface::CallOut::contract("my.contract".parse().unwrap())
+    interface::Request::contract("my.contract".parse().unwrap())
         .method(String::from("method_a"))
         .args(interface::json::named::NamedJson1::new(
             String::from("my_string"),
@@ -39,7 +39,7 @@ pub fn example() {
         ))
         .send_amount(0)
         .prepaid_gas(Gas::from(SINGLE_CALL_GAS))
-        .call_out();
+        .request();
 
     // specialized builder
     _trait_a::method_a::Request::contract("my.contract".parse().unwrap())
@@ -78,7 +78,7 @@ pub mod _trait_a {
     /// (Original method_a documentation)
     pub mod method_a {
         use contract_interface as interface;
-        use interface::call_out;
+        use interface::request;
         use near_sdk::serde::{Deserialize, Serialize};
         use near_sdk::{AccountId, Balance, Gas};
 
@@ -138,15 +138,15 @@ pub mod _trait_a {
                 ArgsRequest::new(self.method_name, self.contract_being_called, args)
             }
 
-            pub fn into_generic(self) -> call_out::MethodCallOut {
+            pub fn into_generic(self) -> request::MethodRequest {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::MethodCallOut> for MethodRequest {
-            fn into(self) -> call_out::MethodCallOut {
-                call_out::CallOut::contract(self.contract_being_called).method(self.method_name)
+        impl Into<request::MethodRequest> for MethodRequest {
+            fn into(self) -> request::MethodRequest {
+                request::Request::contract(self.contract_being_called).method(self.method_name)
             }
         }
         ///
@@ -192,15 +192,15 @@ pub mod _trait_a {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::ArgsCallOut<Args, interface::Json> {
+            pub fn into_generic(self) -> request::ArgsRequest<Args, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::ArgsCallOut<Args, interface::Json>> for ArgsRequest {
-            fn into(self) -> call_out::ArgsCallOut<Args, interface::Json> {
-                call_out::CallOut::contract(self.contract_being_called)
+        impl Into<request::ArgsRequest<Args, interface::Json>> for ArgsRequest {
+            fn into(self) -> request::ArgsRequest<Args, interface::Json> {
+                request::Request::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
             }
@@ -230,15 +230,15 @@ pub mod _trait_a {
                 }
             }
 
-            pub fn into_generic(self) -> call_out::AmountCallOut<Args, interface::Json> {
+            pub fn into_generic(self) -> request::AmountRequest<Args, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::AmountCallOut<Args, interface::Json>> for AmountRequest {
-            fn into(self) -> call_out::AmountCallOut<Args, interface::Json> {
-                call_out::CallOut::contract(self.contract_being_called)
+        impl Into<request::AmountRequest<Args, interface::Json>> for AmountRequest {
+            fn into(self) -> request::AmountRequest<Args, interface::Json> {
+                request::Request::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
                     .send_amount(self.send_amount)
@@ -272,15 +272,15 @@ pub mod _trait_a {
                 );
             }
 
-            pub fn into_generic(self) -> call_out::GasCallOut<Args, interface::Json> {
+            pub fn into_generic(self) -> request::GasRequest<Args, interface::Json> {
                 self.into()
             }
         }
 
         #[allow(clippy::from_over_into)]
-        impl Into<call_out::GasCallOut<Args, interface::Json>> for GasRequest {
-            fn into(self) -> call_out::GasCallOut<Args, interface::Json> {
-                call_out::CallOut::contract(self.contract_being_called)
+        impl Into<request::GasRequest<Args, interface::Json>> for GasRequest {
+            fn into(self) -> request::GasRequest<Args, interface::Json> {
+                request::Request::contract(self.contract_being_called)
                     .method(self.method_name)
                     .args(self.args)
                     .send_amount(self.send_amount)

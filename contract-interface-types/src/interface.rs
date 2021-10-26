@@ -1,4 +1,5 @@
-pub use call_out::CallOut;
+use near_sdk::borsh;
+pub use request::Request;
 
 pub trait Serve<ArgsDeserialization, ReturnSerialization> {
     type State: near_sdk::borsh::BorshDeserialize + near_sdk::borsh::BorshSerialize + Default;
@@ -11,9 +12,21 @@ pub trait Serve<ArgsDeserialization, ReturnSerialization> {
         near_sdk::env::setup_panic_hook();
     }
 
+    fn panic_on_already_existing_state() {
+        if near_sdk::env::state_exists() {
+            near_sdk::env::panic_str("The contract has already been initialized");
+        }
+    }
+
     fn panic_on_deposit() {
         if near_sdk::env::attached_deposit() != 0 {
             near_sdk::env::panic_str("Method doesn\'t accept deposit");
+        }
+    }
+
+    fn panic_on_non_private() {
+        if near_sdk::env::current_account_id() != near_sdk::env::predecessor_account_id() {
+            near_sdk::env::panic_str("Method is private");
         }
     }
 
@@ -26,6 +39,13 @@ pub trait Serve<ArgsDeserialization, ReturnSerialization> {
 
     fn state_read_or_default() -> Self::State {
         near_sdk::env::state_read().unwrap_or_default()
+    }
+
+    fn state_read_or_panic() -> Self::State {
+        match near_sdk::env::state_read() {
+            Some(state) => state,
+            None => near_sdk::env::panic_str("State must be first initialized"),
+        }
     }
 
     fn may_serialize_return_as_output(result: Option<Self::Return>) {
@@ -75,39 +95,17 @@ pub trait ServeRef<ArgsDeserialization, ReturnSerialization>:
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn serve(method: Self::Method) {
-        Self::setup_panic_hook();
-        Self::panic_on_deposit();
-        let args = Self::deserialize_args_from_input();
-        let contract = Self::state_read_or_default();
-        let result = method(&contract, args);
-        Self::may_serialize_return_as_output(result);
-        Self::state_write(&contract);
-    }
-
+    fn serve(method: Self::Method);
     fn extern_serve();
 }
 
-pub trait ServeOwned<ArgsDeserialization, ReturnSerialization>:
-    Serve<ArgsDeserialization, ReturnSerialization>
-{
-    type Method: FnOnce(Self::State, Self::Args) -> Option<Self::Return>;
+pub trait ServeOwned<ArgsDeserialization>: Serve<ArgsDeserialization, crate::Borsh> {
+    type Method: FnOnce(Self::State, Self::Args) -> Self::State;
     // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn serve(method: Self::Method) {
-        Self::setup_panic_hook();
-        Self::panic_on_deposit();
-        let args = Self::deserialize_args_from_input();
-        let contract = Self::state_read_or_default();
-        let result = method(contract, args);
-        Self::may_serialize_return_as_output(result);
-
-        // TODO: check if this write should be skipped
-        // Self::state_write(&contract);
-    }
-
+    fn serve(method: Self::Method);
     fn extern_serve();
 }
 
@@ -119,57 +117,47 @@ pub trait ServeStateless<ArgsDeserialization, ReturnSerialization>:
     // note: associated type defaults are unstable
     // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn serve(method: Self::Method) {
-        Self::setup_panic_hook();
-        Self::panic_on_deposit();
-        let args = Self::deserialize_args_from_input();
-        let result = method(args);
-        Self::may_serialize_return_as_output(result);
-
-        // TODO: check if any form of this write should be skipped
-        // Self::state_write(&contract);
-    }
-
+    fn serve(method: Self::Method);
     fn extern_serve();
 }
 
-pub mod call_out {
+pub mod request {
     use near_sdk::{AccountId, Balance, Gas};
     use std::marker::PhantomData;
 
-    pub struct CallOut {
+    pub struct Request {
         contract_being_called: AccountId,
     }
 
-    impl CallOut {
+    impl Request {
         pub fn contract(contract_being_called: AccountId) -> Self {
             Self {
                 contract_being_called,
             }
         }
-        pub fn method(self, method_name: String) -> MethodCallOut {
-            MethodCallOut {
+        pub fn method(self, method_name: String) -> MethodRequest {
+            MethodRequest {
                 method_name,
                 contract_being_called: self.contract_being_called,
             }
         }
     }
 
-    pub struct MethodCallOut {
+    pub struct MethodRequest {
         method_name: String,
         contract_being_called: AccountId,
     }
 
-    impl MethodCallOut {
-        pub fn new(contract_call: CallOut, method_name: String) -> Self {
+    impl MethodRequest {
+        pub fn new(contract_call: Request, method_name: String) -> Self {
             contract_call.method(method_name)
         }
 
         pub fn args<Args, ArgsSerialization>(
             self,
             args: Args,
-        ) -> ArgsCallOut<Args, ArgsSerialization> {
-            ArgsCallOut {
+        ) -> ArgsRequest<Args, ArgsSerialization> {
+            ArgsRequest {
                 method_name: self.method_name,
                 contract_being_called: self.contract_being_called,
                 args,
@@ -178,20 +166,20 @@ pub mod call_out {
         }
     }
 
-    pub struct ArgsCallOut<Args, ArgsSerialization> {
+    pub struct ArgsRequest<Args, ArgsSerialization> {
         method_name: String,
         contract_being_called: AccountId,
         args: Args,
         args_serialization: PhantomData<ArgsSerialization>,
     }
 
-    impl<Args, ArgsSerialization> ArgsCallOut<Args, ArgsSerialization> {
-        pub fn new(method_call: MethodCallOut, args: Args) -> Self {
+    impl<Args, ArgsSerialization> ArgsRequest<Args, ArgsSerialization> {
+        pub fn new(method_call: MethodRequest, args: Args) -> Self {
             method_call.args(args)
         }
 
-        pub fn send_amount(self, send_amount: Balance) -> AmountCallOut<Args, ArgsSerialization> {
-            AmountCallOut {
+        pub fn send_amount(self, send_amount: Balance) -> AmountRequest<Args, ArgsSerialization> {
+            AmountRequest {
                 method_name: self.method_name,
                 contract_being_called: self.contract_being_called,
                 args: self.args,
@@ -203,8 +191,8 @@ pub mod call_out {
         pub fn prepaid_gas(
             self,
             maximum_allowed_consumption: Gas,
-        ) -> GasCallOut<Args, ArgsSerialization> {
-            GasCallOut {
+        ) -> GasRequest<Args, ArgsSerialization> {
+            GasRequest {
                 method_name: self.method_name,
                 contract_being_called: self.contract_being_called,
                 args: self.args,
@@ -215,7 +203,7 @@ pub mod call_out {
         }
     }
 
-    pub struct AmountCallOut<Args, ArgsSerialization> {
+    pub struct AmountRequest<Args, ArgsSerialization> {
         method_name: String,
         contract_being_called: AccountId,
         args: Args,
@@ -223,16 +211,16 @@ pub mod call_out {
         send_amount: Balance,
     }
 
-    impl<Args, ArgsSerialization> AmountCallOut<Args, ArgsSerialization> {
-        pub fn new(args_call: ArgsCallOut<Args, ArgsSerialization>, send_amount: Balance) -> Self {
+    impl<Args, ArgsSerialization> AmountRequest<Args, ArgsSerialization> {
+        pub fn new(args_call: ArgsRequest<Args, ArgsSerialization>, send_amount: Balance) -> Self {
             args_call.send_amount(send_amount)
         }
 
         pub fn prepaid_gas(
             self,
             maximum_allowed_consumption: Gas,
-        ) -> GasCallOut<Args, ArgsSerialization> {
-            GasCallOut {
+        ) -> GasRequest<Args, ArgsSerialization> {
+            GasRequest {
                 method_name: self.method_name,
                 contract_being_called: self.contract_being_called,
                 args: self.args,
@@ -243,7 +231,7 @@ pub mod call_out {
         }
     }
 
-    pub struct GasCallOut<Args, ArgsSerialization> {
+    pub struct GasRequest<Args, ArgsSerialization> {
         method_name: String,
         contract_being_called: AccountId,
         args: Args,
@@ -252,12 +240,12 @@ pub mod call_out {
         prepaid_gas: Gas,
     }
 
-    impl<Args, ArgsSerialization> GasCallOut<Args, ArgsSerialization>
+    impl<Args, ArgsSerialization> GasRequest<Args, ArgsSerialization>
     where
         Args: crate::ToBytes<ArgsSerialization>,
     {
         pub fn new(
-            amount_call: AmountCallOut<Args, ArgsSerialization>,
+            amount_call: AmountRequest<Args, ArgsSerialization>,
             maximum_allowed_consumption: Gas,
         ) -> Self {
             amount_call.prepaid_gas(maximum_allowed_consumption)
@@ -269,7 +257,7 @@ pub mod call_out {
             self
         }
 
-        pub fn call_out(self) {
+        pub fn request(self) {
             near_sdk::Promise::new(self.contract_being_called).function_call(
                 self.method_name.to_string(),
                 self.args
