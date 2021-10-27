@@ -100,6 +100,7 @@ impl Inputs {
                     pty.attrs.clear();
                     pty.attrs = non_contract_attr;
 
+                    #[allow(clippy::let_and_return)]
                     let attr = {
                         let meta_attrs = meta_attrs::into_meta_attrs(contract_attr.clone())?;
                         let nested =

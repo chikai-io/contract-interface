@@ -1,5 +1,4 @@
 use crate::replace_ident::replace_ident_from_self_to_ident;
-use crate::replace_ident::replace_ident_from_self_to_state;
 
 /// Generics for vairous kinds of items.  
 #[derive(Debug, Clone)]
@@ -87,7 +86,7 @@ impl Generics {
             type_bounds,
         }
     }
-    pub fn replace_from_self_to_state(mut self) -> Self {
+    pub fn replace_from_self_to_state(self) -> Self {
         use proc_macro2::Span;
         let _state = syn::Ident::new("_State", Span::call_site());
         self.replace_from_self_to_ident(&_state)

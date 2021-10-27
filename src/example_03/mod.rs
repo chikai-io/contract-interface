@@ -1,5 +1,3 @@
-use crate as interface;
-use interface::contract;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     near_bindgen, PanicOnDefault,

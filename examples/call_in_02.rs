@@ -4,11 +4,8 @@
 //!
 //! (the consumer contracts still need to define their CallOut's)
 
-use contract_interface as interface;
-use interface::Serve;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    ext_contract, // PanicOnDefault,
     near_bindgen,
 };
 

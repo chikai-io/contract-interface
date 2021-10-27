@@ -1,12 +1,8 @@
-use crate::core_impl::info_extractor::{
-    attr_sig_info::AttrSigInfo, impl_item_method_info::ImplItemMethodInfo, InputStructType,
-    MethodType, SerializerType,
-};
+use crate::core_impl::info_extractor::impl_item_method_info::ImplItemMethodInfo;
 use crate::error;
 use crate::info_extractor::{inputs, item_impl_info::ItemImplInfo};
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{ReturnType, Signature};
 
 impl ImplItemMethodInfo {
     /// Generate wrapper method for the given method of the contract.

@@ -2,7 +2,6 @@ use crate::error;
 use crate::info_extractor::item_impl_info::ItemImplInfo;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::Ident;
 
 impl ItemImplInfo {
     /// Generate the code that wraps

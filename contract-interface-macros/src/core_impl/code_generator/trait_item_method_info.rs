@@ -1,9 +1,5 @@
-use crate::core_impl::{
-    info_extractor::attr_sig_info::AttrSigInfo,
-    info_extractor::{
-        item_trait_info::ItemTraitInfo, trait_item_method_info::TraitItemMethodInfo,
-        InputStructType, SerializerType,
-    },
+use crate::core_impl::info_extractor::{
+    item_trait_info::ItemTraitInfo, trait_item_method_info::TraitItemMethodInfo,
 };
 use crate::error;
 use proc_macro2::TokenStream as TokenStream2;

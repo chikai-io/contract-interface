@@ -1,9 +1,7 @@
-use super::attr_sig_info::AttrSigInfo;
 use super::inputs::Inputs;
 use super::item_generics::Generics;
 use super::meta_attrs;
 use crate::error;
-use darling::util::SpannedValue;
 use darling::FromMeta;
 
 /// Information extracted from `ImplItemMethod`.

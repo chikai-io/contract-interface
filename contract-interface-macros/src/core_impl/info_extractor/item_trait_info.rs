@@ -100,7 +100,7 @@ impl TraitItems {
                     None
                 }
             })
-            .map(|tic| (tic.ident.clone(), tic.clone()))
+            .map(|tic| (tic.ident.clone(), tic))
             .collect();
 
         let types = items
@@ -155,10 +155,10 @@ impl ItemTraitInfo {
     ) -> error::Result<Self> {
         let original_ident = original.ident.clone();
 
-        let (raw_attrs, non_contract__attrs) =
+        let (raw_attrs, non_contract_attrs) =
             meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, attr_args, "contract")?;
         let (doc_attrs, non_contract_attrs) =
-            meta_attrs::partition_attrs(&non_contract__attrs, "doc");
+            meta_attrs::partition_attrs(&non_contract_attrs, "doc");
 
         let attrs = Attrs {
             module_name: raw_attrs.module_name.unwrap_or_else(|| {

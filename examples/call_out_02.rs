@@ -1,7 +1,6 @@
 //! Example of calling an external contract.
 
 use contract_interface as interface;
-use near_sdk::ext_contract;
 use near_sdk::serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]

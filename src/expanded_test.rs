@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 use std::marker::PhantomData;
 
 use crate as interface;

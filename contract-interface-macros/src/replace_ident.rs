@@ -82,7 +82,7 @@ impl ReplaceIdent for syn::Member {
         use syn::Member;
         match self {
             Member::Named(n) => n.replace_ident(from, to),
-            Member::Unnamed(u) => {}
+            Member::Unnamed(_u) => {}
         }
     }
 }

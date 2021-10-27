@@ -2,7 +2,6 @@ use super::impl_item_method_info::ImplItemMethodInfo;
 use super::item_generics::Generics;
 use super::meta_attrs;
 use crate::error;
-use crate::replace_ident::replace_ident_from_self_to_state;
 use darling::FromMeta;
 
 /// Information extracted from `impl` section.
@@ -161,7 +160,7 @@ impl ItemImplInfo {
     ) -> error::Result<Self> {
         let (attrs, forward_attrs) =
             meta_attrs::meta_attrs::<RawAttrs>(&original.attrs, attr_args, "contract")?;
-        let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&original.attrs, "doc");
+        let (doc_attrs, forward_attrs) = meta_attrs::partition_attrs(&forward_attrs, "doc");
         let attrs = Attrs {
             module_name: attrs.module_name,
             trait_mod_path: attrs.trait_mod_path,

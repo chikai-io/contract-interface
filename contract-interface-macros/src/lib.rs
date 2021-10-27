@@ -10,11 +10,9 @@ use proc_macro::TokenStream;
 
 use self::core_impl::*;
 use darling::FromMeta;
-pub(crate) use error::{Error, Result};
+pub(crate) use error::Result;
 use proc_macro2::Span;
 use quote::quote;
-use syn::visit::Visit;
-use syn::{File, ItemEnum, ItemImpl, ItemStruct, ItemTrait};
 
 #[derive(Debug, FromMeta)]
 pub(crate) struct ImplContractArgs {
@@ -49,13 +47,13 @@ fn contract_internal(
     item: TokenStream,
 ) -> error::Result<TokenStream> {
     // attached on `trait Trait {}`
-    if let Ok(mut item_trait) = syn::parse::<ItemTrait>(item.clone()) {
+    if let Ok(mut item_trait) = syn::parse::<syn::ItemTrait>(item.clone()) {
         let item_trait_info =
             info_extractor::item_trait_info::ItemTraitInfo::new(&mut item_trait, attr_args)?;
         Ok(item_trait_info.wrapped_module()?.into())
     }
     // attached on `impl Trait for Struct {}`
-    else if let Ok(mut item_impl) = syn::parse::<ItemImpl>(item) {
+    else if let Ok(mut item_impl) = syn::parse::<syn::ItemImpl>(item) {
         let item_impl_info =
             info_extractor::item_impl_info::ItemImplInfo::new(&mut item_impl, attr_args)?;
         let generated_code = item_impl_info.wrapper_code()?;
@@ -71,7 +69,7 @@ fn contract_internal(
     else {
         Err(syn::Error::new(
             Span::call_site(),
-            "`contract` can only be used on trait definitions or on it's implementations. Perhaps a `#[contract]` attribute is missing at the parent item?",
+            "`contract` can only be used on trait definitions or on implementations. Perhaps a `#[contract]` attribute is missing at the parent item?",
         )
         .into())
     }
