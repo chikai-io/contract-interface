@@ -1,11 +1,12 @@
-use near_sdk::borsh;
 pub use request::Request;
 
-pub trait Serve<ArgsDeserialization, ReturnSerialization> {
+///
+/// `Diverged` is used to allow third-party specialization of this trait for arbitrary types.
+/// See [RFC 1023](https://github.com/rust-lang/rfcs/blob/master/text/1023-rebalancing-coherence.md)
+/// for more information.
+pub trait Serve<ArgsDeserialization, ReturnSerialization, Diverged = ()> {
     type State: near_sdk::borsh::BorshDeserialize + near_sdk::borsh::BorshSerialize + Default;
-
     type Args: crate::FromBytes<ArgsDeserialization>;
-
     type Return: crate::ToBytes<ReturnSerialization>;
 
     fn setup_panic_hook() {
@@ -66,56 +67,46 @@ pub trait Serve<ArgsDeserialization, ReturnSerialization> {
     }
 }
 
-pub trait ServeRefMut<ArgsDeserialization, ReturnSerialization>:
-    Serve<ArgsDeserialization, ReturnSerialization>
+pub trait ServeRefMut<ArgsDeserialization, ReturnSerialization, Diverged = ()>:
+    Serve<ArgsDeserialization, ReturnSerialization, Diverged>
 {
     type Method: FnOnce(&mut Self::State, Self::Args) -> Option<Self::Return>;
-    // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
-    // note: associated type defaults are unstable
-    // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
-    fn serve(method: Self::Method) {
-        Self::setup_panic_hook();
-        Self::panic_on_deposit();
-        let args = Self::deserialize_args_from_input();
-        let mut contract = Self::state_read_or_default();
-        let result = method(&mut contract, args);
-        Self::may_serialize_return_as_output(result);
-        Self::state_write(&contract);
-    }
-
+    fn serve(method: Self::Method);
     fn extern_serve();
 }
 
-pub trait ServeRef<ArgsDeserialization, ReturnSerialization>:
-    Serve<ArgsDeserialization, ReturnSerialization>
+pub trait ServeRef<ArgsDeserialization, ReturnSerialization, Diverged = ()>:
+    Serve<ArgsDeserialization, ReturnSerialization, Diverged>
 {
     type Method: FnOnce(&Self::State, Self::Args) -> Option<Self::Return>;
-    // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
-    // note: associated type defaults are unstable
-    // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
     fn serve(method: Self::Method);
     fn extern_serve();
 }
 
-pub trait ServeOwned<ArgsDeserialization>: Serve<ArgsDeserialization, crate::Borsh> {
+pub trait ServeOwned<ArgsDeserialization, Diverged = ()>:
+    Serve<ArgsDeserialization, crate::Borsh, Diverged>
+{
     type Method: FnOnce(Self::State, Self::Args) -> Self::State;
-    // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
-    // note: associated type defaults are unstable
-    // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
 
     fn serve(method: Self::Method);
     fn extern_serve();
 }
 
-pub trait ServeStateless<ArgsDeserialization, ReturnSerialization>:
-    Serve<ArgsDeserialization, ReturnSerialization>
+pub trait ServeStateless<ArgsDeserialization, ReturnSerialization, Diverged = ()>:
+    Serve<ArgsDeserialization, ReturnSerialization, Diverged>
 {
     type Method: FnOnce(Self::Args) -> Option<Self::Return>;
-    // = fn(&mut Self::State, Self::Args) -> Option<Self::Return>;
-    // note: associated type defaults are unstable
-    // see issue #29661 <https://github.com/rust-lang/rust/issues/29661> for more information
+
+    fn serve(method: Self::Method);
+    fn extern_serve();
+}
+
+pub trait ServeStatelessInit<ArgsDeserialization, Diverged = ()>:
+    Serve<ArgsDeserialization, crate::Borsh, Diverged>
+{
+    type Method: FnOnce(Self::Args) -> Self::State;
 
     fn serve(method: Self::Method);
     fn extern_serve();

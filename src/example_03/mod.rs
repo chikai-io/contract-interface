@@ -16,12 +16,17 @@ pub struct Struct2 {
     c: u32,
 }
 
-// #[near_bindgen]
-// impl Trait for Struct2 {
-//     fn method_a(&mut self, _my_string: String) {
-//         unimplemented!()
-//     }
-//     fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool {
-//         unimplemented!()
-//     }
-// }
+pub trait Trait {
+    fn method_a(&mut self, _my_string: String);
+    fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool;
+}
+
+#[near_bindgen]
+impl Trait for Struct2 {
+    fn method_a(&mut self, _my_string: String) {
+        unimplemented!()
+    }
+    fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool {
+        unimplemented!()
+    }
+}

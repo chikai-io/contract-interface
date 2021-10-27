@@ -1,12 +1,12 @@
-// pub mod api;
-// pub mod client;
-
 use crate as interface;
 use interface::contract;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     near_bindgen, PanicOnDefault,
 };
+
+pub mod api;
+pub mod client;
 
 /// (Original Struct documentation)
 #[near_bindgen]

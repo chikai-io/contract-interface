@@ -527,6 +527,7 @@ impl ImplItemMethodInfo {
                     > _interface::Serve< //
                         _interface::Json,
                         #result_serializer
+                        _Diverger
                     > //
                     for  #trait_method_mod::serve::Serve<#trait_and_method_arg_idents>
                     #where_clause
@@ -549,11 +550,13 @@ impl ImplItemMethodInfo {
                     if matches!(recv_kind, inputs::ReceiverKind::Owned) {
                         quote! {
                                 _interface::Json,
+                                _Diverger
                         }
                     } else {
                         quote! {
                                 _interface::Json,
-                                _interface::Json
+                                _interface::Json,
+                                _Diverger
                         }
                     }
                 };
@@ -657,6 +660,9 @@ impl ImplItemMethodInfo {
                     #serve_shortcut_type
 
                     #request_shortcut_type
+
+                    #[doc = " Allows specialization of a third-party trait for arbitrary types."]
+                    pub struct _Diverger;
                 }
 
             }
