@@ -8,9 +8,6 @@ use inflector::Inflector;
 
 /// Information extracted from `ItemTrait`.
 pub struct ItemTraitInfo {
-    // TODO: ahve an alternative to original,
-    // with de #[contract] attributes filtered out
-    //
     /// The original AST of the trait.
     pub original: syn::ItemTrait,
 

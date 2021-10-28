@@ -203,7 +203,16 @@ impl ImplItemMethodInfo {
                 .inputs
                 .args
                 .iter()
-                .map(|a| a.arg.pat.as_ref())
+                .map(|a| {
+                    let pat = a.arg.pat.as_ref();
+                    let s = quote! {args.#pat};
+                    if let Some(fake) = a.fake_arg.as_ref() {
+                        let m = &fake.modification;
+                        m.modify_pat(s)
+                    } else {
+                        s
+                    }
+                })
                 .collect::<Vec<_>>();
 
             let where_clause = {
@@ -449,10 +458,10 @@ impl ImplItemMethodInfo {
                 inputs::ReceiverKind::RefMut => quote! {
                     fn extern_serve() {
                         use _interface::ServeRefMut;
-                        let method_wrapper = |state: &mut Self::State, args: Self::Args| {
+                        let method_wrapper = |state: &mut Self::State, mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
-                            > (state, #(args.#args_pats),*);
+                            > (state, #(#args_pats),*);
                             #return_value
                         };
                         Self::serve(method_wrapper);
@@ -461,10 +470,10 @@ impl ImplItemMethodInfo {
                 inputs::ReceiverKind::Ref => quote! {
                     fn extern_serve() {
                         use _interface::ServeRef;
-                        let method_wrapper = |state: &Self::State, args: Self::Args| {
+                        let method_wrapper = |state: &Self::State, mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
-                            > (state, #(args.#args_pats),*);
+                            > (state, #(#args_pats),*);
                             #return_value
                         };
                         Self::serve(method_wrapper);
@@ -473,10 +482,10 @@ impl ImplItemMethodInfo {
                 inputs::ReceiverKind::Owned => quote! {
                     fn extern_serve() {
                         use _interface::ServeOwned;
-                        let method_wrapper = |state: Self::State, args: Self::Args| {
+                        let method_wrapper = |state: Self::State, mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
-                            > (state, #(args.#args_pats),*);
+                            > (state, #(#args_pats),*);
                             #return_value
                         };
                         Self::serve(method_wrapper);
@@ -485,10 +494,10 @@ impl ImplItemMethodInfo {
                 inputs::ReceiverKind::Stateless => quote! {
                     fn extern_serve() {
                         use _interface::ServeStateless;
-                        let method_wrapper = |args: Self::Args| {
+                        let method_wrapper = |mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
                                 #method_arg_idents
-                            > (#(args.#args_pats),*);
+                            > (#(#args_pats),*);
                             #return_value
                         };
                         Self::serve(method_wrapper);

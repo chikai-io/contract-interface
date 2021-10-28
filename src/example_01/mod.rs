@@ -11,16 +11,16 @@ pub mod client;
 /// (Original Struct documentation)
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
-pub struct Struct {
+pub struct Struct1 {
     a: u8,
     b: u16,
     c: u32,
 }
 
-/// (Trait4 Doc).
-#[contract(mod = "trait4")]
+/// (Trait1 Doc).
+#[contract(mod = "trait1")]
 #[allow(unused_variables)]
-pub trait Trait4 {
+pub trait Trait1 {
     fn method_ref_mut(&mut self, my_bool: bool) {
         unimplemented!()
     }
@@ -47,10 +47,10 @@ pub trait Trait4 {
     }
 }
 
-/// (Impl Trait4 for Struct Doc).
-#[contract(mod = "struct_", trait = "trait4")]
+/// (Impl Trait1 for Struct Doc).
+#[contract(mod = "struct_", trait = "trait1")]
 #[allow(unused_variables)]
-impl Trait4 for Struct {
+impl Trait1 for Struct1 {
     /// (Impl method_ref_mut Doc).
     fn method_ref_mut(&mut self, my_bool: bool) {
         unimplemented!()

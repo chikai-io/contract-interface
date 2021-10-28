@@ -14,15 +14,15 @@ use near_sdk::{
 /// (Original Struct documentation)
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
-pub struct Struct {
+pub struct Struct2 {
     a: u8,
     b: u16,
     c: u32,
 }
 
-/// (Trait3 Doc).
+/// (Trait2 Doc).
 #[contract]
-pub trait Trait3< //
+pub trait Trait2< //
         'trait_lt,
         TraitType: std::fmt::Debug,
         const TRAIT_CONST: bool
@@ -65,8 +65,8 @@ TraitType: near_sdk::serde::Serialize + near_sdk::serde::de::DeserializeOwned + 
     }
 }
 
-/// (Impl Trait3 for Struct Doc).
-#[contract(mod = "struct_2", trait = "trait_3")]
+/// (Impl Trait2 for Struct Doc).
+#[contract(mod = "struct_2", trait = "trait_2")]
 impl<
         //
         'trait_lt,
@@ -74,12 +74,12 @@ impl<
         // TraitType: std::fmt::Debug + near_sdk::serde::de::DeserializeOwned,
         const TRAIT_CONST: bool,
     >
-    Trait3<
+    Trait2<
         //
         'trait_lt,
         TraitType,
         TRAIT_CONST,
-    > for Struct //
+    > for Struct2 //
 
     where TraitType: near_sdk::serde::Serialize + near_sdk::serde::de::DeserializeOwned + Default,
     
@@ -105,7 +105,7 @@ impl<
         _my_type_a: Self::TraitInternalTypeA,
     ) -> MethodTypeB
     where
-        Self: Trait3<'trait_lt, TraitType, TRAIT_CONST>,
+        Self: Trait2<'trait_lt, TraitType, TRAIT_CONST>,
         TraitType: 'trait_lt,
         MethodTypeA: Default,
         MethodTypeB: Default + near_sdk::serde::Serialize,

@@ -13,6 +13,7 @@ impl TraitItemMethodInfo {
         trait_info: &ItemTraitInfo,
     ) -> error::Result<TokenStream2> {
         let method_mod_name = &self.attrs.method_mod_name;
+        let original_method_name = format!("{}", original_method_name);
         let attr_docs = &self.doc_attrs;
 
         //
@@ -55,6 +56,18 @@ impl TraitItemMethodInfo {
                 (arg, quote! { #( # [ #forwarded_attr ] )* })
             })
             .unzip();
+        let fake_args = outer_args
+            .iter()
+            .map(|a| {
+                let mut arg = if let Some(ref fake) = a.fake_arg {
+                    fake.fake_arg.clone()
+                } else {
+                    a.arg.clone()
+                };
+                arg.attrs.clear();
+                arg
+            })
+            .collect::<Vec<_>>();
 
         let self_lifetime_bounds = &trait_info.self_lifetime_bounds;
         let self_lifetime_bounds_q = if self_lifetime_bounds.is_empty() {
@@ -232,7 +245,7 @@ impl TraitItemMethodInfo {
                 >
                 #where_clause
                 {
-                    #( #args_forward_attrs pub #args,)*
+                    #( #args_forward_attrs pub #fake_args,)*
                     #[serde(skip)]
                     pub _phantom: serve::Serve< //
                         #args_generics_idents
@@ -243,7 +256,7 @@ impl TraitItemMethodInfo {
                 #where_clause
                 serve::Serve<#args_generics_idents>: Default
                 {
-                    pub fn new(#(#args,)*) -> Args<#args_generics_idents> {
+                    pub fn new(#(#fake_args,)*) -> Args<#args_generics_idents> {
                         Args {
                             _phantom: serve::Serve::default(),
                             #(#args_pats),*
@@ -356,7 +369,7 @@ impl TraitItemMethodInfo {
                         pub fn contract(contract_being_called: _near_sdk::AccountId) -> MethodRequest<#args_generics_idents> {
                             MethodRequest {
                                 contract_being_called,
-                                method_name: "#original_method_name".to_string(),
+                                method_name: #original_method_name.to_string(),
                                 _phantom: serve::Serve::default(),
                             }
                         }
@@ -409,7 +422,7 @@ impl TraitItemMethodInfo {
                         #[doc = " Sets the arguments for the call."]
                         #[doc = ""]
                         #(#attr_docs)*
-                        pub fn args(self, #(#args,)*) -> ArgsRequest<#args_generics_idents> {
+                        pub fn args(self, #(#fake_args,)*) -> ArgsRequest<#args_generics_idents> {
                             let args = Args::new(#(#args_pats),*);
                             ArgsRequest::new(
                                 self.method_name,

@@ -8,23 +8,23 @@ pub mod api;
 /// (Original Struct documentation)
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
-pub struct Struct2 {
+pub struct Struct3 {
     a: u8,
     b: u16,
     c: u32,
 }
 
-pub trait Trait {
-    fn method_a(&mut self, _my_string: String);
-    fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool;
+pub trait Trait3 {
+    fn method_ex3_a(&mut self, _my_string: String);
+    fn method_ex3_b(&mut self, _my_string: String, _my_bool: &bool) -> bool;
 }
 
 #[near_bindgen]
-impl Trait for Struct2 {
-    fn method_a(&mut self, _my_string: String) {
+impl Trait3 for Struct3 {
+    fn method_ex3_a(&mut self, _my_string: String) {
         unimplemented!()
     }
-    fn method_b(&mut self, _my_string: String, _my_bool: bool) -> bool {
+    fn method_ex3_b(&mut self, _my_string: String, _my_bool: &bool) -> bool {
         unimplemented!()
     }
 }

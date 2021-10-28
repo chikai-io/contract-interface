@@ -125,22 +125,31 @@ impl ReplaceIdent for syn::Pat {
             Pat::Box(p) => p.replace_ident(from, to),
             Pat::Ident(p) => p.replace_ident(from, to),
             Pat::Lit(p) => p.replace_ident(from, to),
-            Pat::Macro(_p) => unimplemented!("ReplaceIdent for Pat::Macro not yet implemented"),
+            Pat::Macro(p) => {
+                unimplemented!("ReplaceIdent for Pat::Macro `{:?}` not yet implemented", p)
+            }
             Pat::Or(p) => p.replace_ident(from, to),
             Pat::Path(p) => p.replace_ident(from, to),
             Pat::Range(p) => p.replace_ident(from, to),
             Pat::Reference(p) => p.replace_ident(from, to),
-            Pat::Rest(_p) => unimplemented!("ReplaceIdent for Pat::Rest not yet implemented"),
+            Pat::Rest(p) => {
+                unimplemented!("ReplaceIdent for Pat::Rest `{:?}` not yet implemented", p)
+            }
             Pat::Slice(p) => p.replace_ident(from, to),
             Pat::Struct(p) => p.replace_ident(from, to),
             Pat::Tuple(p) => p.replace_ident(from, to),
             Pat::TupleStruct(p) => p.replace_ident(from, to),
             Pat::Type(p) => p.replace_ident(from, to),
-            Pat::Verbatim(_p) => {
-                unimplemented!("ReplaceIdent for Pat::Verbatim not yet implemented")
+            Pat::Verbatim(p) => {
+                unimplemented!(
+                    "ReplaceIdent for Pat::Verbatim `{:?}` not yet implemented",
+                    p
+                )
             }
-            Pat::Wild(_p) => unimplemented!("ReplaceIdent for Pat::Wild not yet implemented"),
-            _ => unimplemented!("ReplaceIdent for unknown Pat not yet implemented"),
+            Pat::Wild(p) => {
+                unimplemented!("ReplaceIdent for Pat::Wild `{:?}` not yet implemented", p)
+            }
+            p => unimplemented!("ReplaceIdent for unknown Pat `{:?}` not yet implemented", p),
         }
     }
 }
@@ -321,54 +330,379 @@ impl ReplaceIdent for syn::Constraint {
 pub mod expr {
     use super::ReplaceIdent;
 
+    impl ReplaceIdent for syn::ExprArray {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            for e in self.elems.iter_mut() {
+                e.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprAssign {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.left.replace_ident(from, to);
+            self.right.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprAssignOp {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.left.replace_ident(from, to);
+            self.right.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprAwait {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.base.replace_ident(from, to)
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprBinary {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.left.replace_ident(from, to);
+            self.right.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprBox {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to)
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprBreak {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            if let Some(ref mut label) = self.label {
+                label.replace_ident(from, to);
+            }
+            if let Some(ref mut expr) = self.expr {
+                expr.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprCall {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.func.replace_ident(from, to);
+            for a in self.args.iter_mut() {
+                a.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprCast {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to);
+            self.ty.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprClosure {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            for i in self.inputs.iter_mut() {
+                i.replace_ident(from, to);
+            }
+            self.output.replace_ident(from, to);
+            self.body.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprContinue {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            if let Some(ref mut label) = self.label {
+                label.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprField {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.base.replace_ident(from, to);
+            self.member.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprGroup {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to)
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprIndex {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to);
+            self.index.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprLet {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.pat.replace_ident(from, to);
+            self.expr.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::Lit {
+        fn replace_ident(&mut self, _from: &syn::Ident, _to: &syn::Ident) {
+            use syn::Lit;
+            match self {
+                Lit::Str(_l) => {}
+                Lit::ByteStr(_l) => {}
+                Lit::Byte(_l) => {}
+                Lit::Char(_l) => {}
+                Lit::Int(_l) => {}
+                Lit::Float(_l) => {}
+                Lit::Bool(_l) => {}
+                Lit::Verbatim(l) => {
+                    unimplemented!(
+                        "ReplaceIdent for Lit::Verbatim `{:?}` not yet implemented",
+                        l
+                    )
+                }
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprLit {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.lit.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::Arm {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.pat.replace_ident(from, to);
+            if let Some((_, ref mut expr)) = self.guard {
+                expr.replace_ident(from, to);
+            }
+            self.body.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprMatch {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to);
+            for a in self.arms.iter_mut() {
+                a.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::GenericMethodArgument {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            match self {
+                syn::GenericMethodArgument::Type(t) => t.replace_ident(from, to),
+                syn::GenericMethodArgument::Const(e) => e.replace_ident(from, to),
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::MethodTurbofish {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            for a in self.args.iter_mut() {
+                a.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprMethodCall {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.receiver.replace_ident(from, to);
+            self.method.replace_ident(from, to);
+            if let Some(ref mut turbo) = self.turbofish {
+                turbo.replace_ident(from, to);
+            }
+            for a in self.args.iter_mut() {
+                a.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprParen {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to)
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprPath {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            if let Some(ref mut q) = self.qself {
+                q.replace_ident(from, to);
+            }
+            self.path.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprRange {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            if let Some(ref mut f) = self.from {
+                f.replace_ident(from, to);
+            }
+            if let Some(ref mut t) = self.to {
+                t.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprReference {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to)
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprRepeat {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to);
+            self.len.replace_ident(from, to)
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprReturn {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            if let Some(ref mut r) = self.expr {
+                r.replace_ident(from, to)
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::FieldValue {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.member.replace_ident(from, to);
+            self.expr.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprStruct {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.path.replace_ident(from, to);
+            for f in self.fields.iter_mut() {
+                f.replace_ident(from, to);
+            }
+            if let Some(ref mut rest) = self.rest {
+                rest.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprTry {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprTuple {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            for e in self.elems.iter_mut() {
+                e.replace_ident(from, to);
+            }
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprType {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to);
+            self.ty.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprUnary {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            self.expr.replace_ident(from, to);
+        }
+    }
+
+    impl ReplaceIdent for syn::ExprYield {
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            if let Some(ref mut expr) = self.expr {
+                expr.replace_ident(from, to);
+            }
+        }
+    }
+
     // todo
     impl ReplaceIdent for syn::Expr {
-        fn replace_ident(&mut self, _from: &syn::Ident, _to: &syn::Ident) {
-            unimplemented!("ReplaceIdent for Expr not yet implemented")
-            // use syn::Expr;
-            // match self {
-            //     Expr::Array(e) => e.replace_ident(from, to),
-            //     Expr::Assign(e) => e.replace_ident(from, to),
-            //     Expr::AssignOp(e) => e.replace_ident(from, to),
-            //     Expr::Async(e) => e.replace_ident(from, to),
-            //     Expr::Await(e) => e.replace_ident(from, to),
-            //     Expr::Binary(e) => e.replace_ident(from, to),
-            //     Expr::Block(e) => e.replace_ident(from, to),
-            //     Expr::Box(e) => e.replace_ident(from, to),
-            //     Expr::Break(e) => e.replace_ident(from, to),
-            //     Expr::Call(e) => e.replace_ident(from, to),
-            //     Expr::Cast(e) => e.replace_ident(from, to),
-            //     Expr::Closure(e) => e.replace_ident(from, to),
-            //     Expr::Continue(e) => e.replace_ident(from, to),
-            //     Expr::Field(e) => e.replace_ident(from, to),
-            //     Expr::ForLoop(e) => e.replace_ident(from, to),
-            //     Expr::Group(e) => e.replace_ident(from, to),
-            //     Expr::If(e) => e.replace_ident(from, to),
-            //     Expr::Index(e) => e.replace_ident(from, to),
-            //     Expr::Let(e) => e.replace_ident(from, to),
-            //     Expr::Lit(e) => e.replace_ident(from, to),
-            //     Expr::Loop(e) => e.replace_ident(from, to),
-            //     Expr::Macro(e) => e.replace_ident(from, to),
-            //     Expr::Match(e) => e.replace_ident(from, to),
-            //     Expr::MethodCall(e) => e.replace_ident(from, to),
-            //     Expr::Paren(e) => e.replace_ident(from, to),
-            //     Expr::Path(e) => e.replace_ident(from, to),
-            //     Expr::Range(e) => e.replace_ident(from, to),
-            //     Expr::Reference(e) => e.replace_ident(from, to),
-            //     Expr::Repeat(e) => e.replace_ident(from, to),
-            //     Expr::Return(e) => e.replace_ident(from, to),
-            //     Expr::Struct(e) => e.replace_ident(from, to),
-            //     Expr::Try(e) => e.replace_ident(from, to),
-            //     Expr::TryBlock(e) => e.replace_ident(from, to),
-            //     Expr::Tuple(e) => e.replace_ident(from, to),
-            //     Expr::Type(e) => e.replace_ident(from, to),
-            //     Expr::Unary(e) => e.replace_ident(from, to),
-            //     Expr::Unsafe(e) => e.replace_ident(from, to),
-            //     Expr::Verbatim(e) => e.replace_ident(from, to),
-            //     Expr::While(e) => e.replace_ident(from, to),
-            //     Expr::Yield(e) => e.replace_ident(from, to),
-            //     _ => unimplemented!(),
-            // }
+        fn replace_ident(&mut self, from: &syn::Ident, to: &syn::Ident) {
+            use syn::Expr;
+            match self {
+                Expr::Array(e) => e.replace_ident(from, to),
+                Expr::Assign(e) => e.replace_ident(from, to),
+                Expr::AssignOp(e) => e.replace_ident(from, to),
+                Expr::Async(e) => {
+                    unimplemented!("ReplaceIdent for Expr::Async `{:?}` not yet implemented", e)
+                }
+                Expr::Await(e) => e.replace_ident(from, to),
+                Expr::Binary(e) => e.replace_ident(from, to),
+                Expr::Block(e) => {
+                    unimplemented!("ReplaceIdent for Expr::Block `{:?}` not yet implemented", e)
+                }
+                Expr::Box(e) => e.replace_ident(from, to),
+                Expr::Break(e) => e.replace_ident(from, to),
+                Expr::Call(e) => e.replace_ident(from, to),
+                Expr::Cast(e) => e.replace_ident(from, to),
+                Expr::Closure(e) => e.replace_ident(from, to),
+                Expr::Continue(e) => e.replace_ident(from, to),
+                Expr::Field(e) => e.replace_ident(from, to),
+                Expr::ForLoop(e) => {
+                    unimplemented!(
+                        "ReplaceIdent for Expr::ForLoop `{:?}` not yet implemented",
+                        e
+                    )
+                }
+                Expr::Group(e) => e.replace_ident(from, to),
+                Expr::If(e) => {
+                    unimplemented!("ReplaceIdent for Expr::If `{:?}` not yet implemented", e)
+                }
+                Expr::Index(e) => e.replace_ident(from, to),
+                Expr::Let(e) => e.replace_ident(from, to),
+                Expr::Lit(e) => e.replace_ident(from, to),
+                Expr::Loop(e) => {
+                    unimplemented!("ReplaceIdent for Expr::Loop `{:?}` not yet implemented", e)
+                }
+                Expr::Macro(e) => {
+                    unimplemented!("ReplaceIdent for Expr::Macro `{:?}` not yet implemented", e)
+                }
+                Expr::Match(e) => e.replace_ident(from, to),
+                Expr::MethodCall(e) => e.replace_ident(from, to),
+                Expr::Paren(e) => e.replace_ident(from, to),
+                Expr::Path(e) => e.replace_ident(from, to),
+                Expr::Range(e) => e.replace_ident(from, to),
+                Expr::Reference(e) => e.replace_ident(from, to),
+                Expr::Repeat(e) => e.replace_ident(from, to),
+                Expr::Return(e) => e.replace_ident(from, to),
+                Expr::Struct(e) => e.replace_ident(from, to),
+                Expr::Try(e) => e.replace_ident(from, to),
+                Expr::TryBlock(e) => {
+                    unimplemented!(
+                        "ReplaceIdent for Expr::TryBlock `{:?}` not yet implemented",
+                        e
+                    )
+                }
+                Expr::Tuple(e) => e.replace_ident(from, to),
+                Expr::Type(e) => e.replace_ident(from, to),
+                Expr::Unary(e) => e.replace_ident(from, to),
+                Expr::Unsafe(e) => {
+                    unimplemented!(
+                        "ReplaceIdent for Expr::Unsafe `{:?}` not yet implemented",
+                        e
+                    )
+                }
+                Expr::Verbatim(e) => {
+                    unimplemented!(
+                        "ReplaceIdent for Expr::Verbatim `{:?}` not yet implemented",
+                        e
+                    )
+                }
+                Expr::While(e) => {
+                    unimplemented!("ReplaceIdent for Expr::While `{:?}` not yet implemented", e)
+                }
+                Expr::Yield(e) => e.replace_ident(from, to),
+
+                e => unimplemented!(
+                    "ReplaceIdent for unknown Expr `{:?}` not yet implemented",
+                    e
+                ),
+            }
         }
     }
 }
@@ -559,10 +893,16 @@ impl ReplaceIdent for syn::Type {
             Type::Slice(t) => t.replace_ident(from, to),
             Type::TraitObject(t) => t.replace_ident(from, to),
             Type::Tuple(t) => t.replace_ident(from, to),
-            Type::Verbatim(_t) => {
-                unimplemented!("ReplaceIdent for Type::Verbatim not yet implemented")
+            Type::Verbatim(t) => {
+                unimplemented!(
+                    "ReplaceIdent for Type::Verbatim `{:?}` not yet implemented",
+                    t
+                )
             }
-            _ => unimplemented!("ReplaceIdent for unknown Type not yet implemented"),
+            t => unimplemented!(
+                "ReplaceIdent for unknown Type `{:?}` not yet implemented",
+                t
+            ),
         }
     }
 }
