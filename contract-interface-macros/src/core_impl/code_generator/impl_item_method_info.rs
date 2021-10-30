@@ -216,18 +216,8 @@ impl ImplItemMethodInfo {
                 .collect::<Vec<_>>();
 
             let where_clause = {
-                let state_ty_as_ident = syn::Ident::new(
-                    &quote!(#state_ty).to_string(),
-                    proc_macro2::Span::call_site(),
-                );
-                let impl_generics = impl_info
-                    .generics
-                    .clone()
-                    .replace_from_self_to_ident(&state_ty_as_ident);
-                let method_generics = self
-                    .generics
-                    .clone()
-                    .replace_from_self_to_ident(&state_ty_as_ident);
+                let impl_generics = &impl_info.generics;
+                let method_generics = &self.generics;
                 let impl_lifetime_where_clauses =
                     impl_generics.lifetime_bounds.values().collect::<Vec<_>>();
                 let impl_type_where_clauses =
