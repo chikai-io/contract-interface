@@ -14,9 +14,8 @@ Please see [near-sdk-rs#606](https://github.com/near/near-sdk-rs/issues/606) for
 - Wasm extern functions _(design/WIP)_ - [#12](https://github.com/chikai-io/contract-interface/issues/12)
 - Named arguments _(WIP)_ - [#10](https://github.com/chikai-io/contract-interface/issues/13)
 - Inheritance _(design)_ - [#15](https://github.com/chikai-io/contract-interface/issues/15)
-- Wasm checks _(design)_ - [#16](https://github.com/chikai-io/contract-interface/issues/16)
+- Metadata gathering/exporting _(design)_ - [#1](https://github.com/chikai-io/contract-interface/issues/1)
 
 ## Examples
 
 TODO (features are still being worked on)  
-(Currently the `examples/` directory doesn't really contain any actual example)

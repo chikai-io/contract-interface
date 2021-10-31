@@ -156,26 +156,72 @@ fn adapt_argument(
 
     // TODO
     match pty.pat.as_ref() {
-        // syn::Pat::Box(p) => todo!(),
-        // syn::Pat::Ident(p) => todo!(),
-        // syn::Pat::Lit(p) => todo!(),
-        // syn::Pat::Macro(p) => todo!(),
-        // syn::Pat::Or(p) => todo!(),
-        // syn::Pat::Path(p) => todo!(),
-        // syn::Pat::Range(p) => todo!(),
-        // syn::Pat::Reference(p) => todo!(),
-        // syn::Pat::Rest(p) => todo!(),
-        // syn::Pat::Slice(p) => todo!(),
-        // syn::Pat::Struct(p) => todo!(),
-        syn::Pat::Tuple(p) => {
-            return Err(syn::Error::new(p.span(), "Pat::Tuple is not currently supported.").into())
-        }
-        // syn::Pat::TupleStruct(p) => todo!(),
-        // syn::Pat::Type(p) => todo!(),
-        // syn::Pat::Verbatim(p) => todo!(),
-        // syn::Pat::Wild(p) => todo!(),
-        _p => (),
-    };
+        syn::Pat::Box(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Box is not currently supported.",
+        )),
+        syn::Pat::Ident(_p) => Ok(()),
+        syn::Pat::Lit(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Lit is not currently supported.",
+        )),
+        syn::Pat::Macro(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Macro is not currently supported.",
+        )),
+        syn::Pat::Or(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Or is not currently supported.",
+        )),
+        syn::Pat::Path(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Path is not currently supported.",
+        )),
+        syn::Pat::Range(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Range is not currently supported.",
+        )),
+        syn::Pat::Reference(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Reference is not currently supported.",
+        )),
+        syn::Pat::Rest(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Rest is not currently supported.",
+        )),
+        syn::Pat::Slice(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Slice is not currently supported.",
+        )),
+        syn::Pat::Struct(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Struct is not currently supported.",
+        )),
+        syn::Pat::Tuple(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Tuple is not currently supported.",
+        )),
+        syn::Pat::TupleStruct(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::TuTupleStructple is not currently supported.",
+        )),
+        syn::Pat::Type(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Type is not currently supported.",
+        )),
+        syn::Pat::Verbatim(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Verbatim is not currently supported.",
+        )),
+        syn::Pat::Wild(p) => Err(syn::Error::new(
+            p.span(),
+            "Pat::Wild is not currently supported.",
+        )),
+        p => Err(syn::Error::new(
+            p.span(),
+            "Unknown Pat is not currently supported.",
+        )),
+    }?;
     match pty.ty.as_ref() {
         syn::Type::BareFn(ty) => {
             Err(syn::Error::new(ty.span(), "Type::BareFn is not currently supported.").into())
@@ -209,7 +255,9 @@ fn adapt_argument(
             Ok(())
         }
         syn::Type::Array(_) => Ok(()),
-        syn::Type::Group(_) => Ok(()),
+        syn::Type::Group(ty) => {
+            Err(syn::Error::new(ty.span(), "Type::Group is not currently supported.").into())
+        }
         syn::Type::Infer(ty) => {
             Err(syn::Error::new(ty.span(), "Type::Infer is not currently supported.").into())
         }
@@ -224,12 +272,14 @@ fn adapt_argument(
         syn::Type::Slice(ty) => {
             Err(syn::Error::new(ty.span(), "Type::Slice is not currently supported.").into())
         }
-        syn::Type::TraitObject(_) => Ok(()),
+        syn::Type::TraitObject(ty) => {
+            Err(syn::Error::new(ty.span(), "Type::TraitObject is not currently supported.").into())
+        }
         syn::Type::Tuple(_) => Ok(()),
         syn::Type::Verbatim(ts) => {
             Err(syn::Error::new(ts.span(), "Type::Verbatim is not currently supported.").into())
         }
-        _ty => Ok(()),
+        ty => Err(syn::Error::new(ty.span(), "Unknown Type is not currently supported.").into()),
     }
 }
 

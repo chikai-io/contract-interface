@@ -2,6 +2,10 @@ use super::{interface, struct_};
 
 // must be created by macro (or by hand)
 
+// extern 1 function (from a trait)
+// extern all functions (from a trait)
+//
+
 // #[cfg(target_arch = "wasm32")]
 #[no_mangle]
 pub extern "C" fn method_ref_mut_manual() {

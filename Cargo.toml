@@ -20,20 +20,27 @@ near-contract-standards = "4.0.0-pre.2"
 members = [
     "contract-interface-types", 
     "contract-interface-macros", 
+    "contract-standards"
 ]
+
+[[example]]
+name = "fungible-token"
+path = "examples/fungible-token"
+crate-type = ["cdylib"]
+
 
 # [[example]]
 # name = "call_in_01"
 # crate-type = ["cdylib"]
 
-[[example]]
-name = "call_in_02"
-crate-type = ["cdylib"]
+# [[example]]
+# name = "call_in_02"
+# crate-type = ["cdylib"]
 
-[[example]]
-name = "call_out_01"
-crate-type = ["cdylib"]
+# [[example]]
+# name = "call_out_01"
+# crate-type = ["cdylib"]
 
-[[example]]
-name = "call_out_02"
-crate-type = ["cdylib"]
+# [[example]]
+# name = "call_out_02"
+# crate-type = ["cdylib"]
