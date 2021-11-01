@@ -6,6 +6,7 @@ use near_sdk::{
 };
 
 pub mod api;
+pub mod api_manual;
 pub mod client;
 
 /// (Original Struct documentation)

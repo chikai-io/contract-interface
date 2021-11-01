@@ -79,7 +79,7 @@ impl ImplItemMethodInfo {
                 // no additional generics
                 syn::PathArguments::None => {}
                 // some generics. Needs to separate the lifetime from the rest,
-                // because the state shall be palced as the first aprameter
+                // because the state shall be placed as the first parameter
                 // right after the lifetimes
                 syn::PathArguments::AngleBracketed(a) => {
                     for a in &a.args {
@@ -192,10 +192,9 @@ impl ImplItemMethodInfo {
             );
             let args_link_str = format!("{}::Args", quote!(#trait_method_mod));
 
-            let trait_generic_lifetimes =
-                &impl_info.generics.lifetimes.values().collect::<Vec<_>>();
-            let trait_generic_types = &impl_info.generics.types.values().collect::<Vec<_>>();
-            let trait_generic_consts = &impl_info.generics.consts.values().collect::<Vec<_>>();
+            let impl_generic_lifetimes = &impl_info.generics.lifetimes.values().collect::<Vec<_>>();
+            let impl_generic_types = &impl_info.generics.types.values().collect::<Vec<_>>();
+            let impl_generic_consts = &impl_info.generics.consts.values().collect::<Vec<_>>();
 
             // TODO: test various patterns as arguments
             // eg. (a, b): (bool, u8),
@@ -216,8 +215,12 @@ impl ImplItemMethodInfo {
                 .collect::<Vec<_>>();
 
             let where_clause = {
-                let impl_generics = &impl_info.generics;
-                let method_generics = &self.generics;
+                let impl_generics = impl_info
+                    .generics
+                    .clone()
+                    .replace_from_self_to_type(state_ty);
+                let method_generics = self.generics.clone().replace_from_self_to_type(state_ty);
+
                 let impl_lifetime_where_clauses =
                     impl_generics.lifetime_bounds.values().collect::<Vec<_>>();
                 let impl_type_where_clauses =
@@ -513,11 +516,11 @@ impl ImplItemMethodInfo {
                     #[doc = ""]
                     #(#attr_docs)*
                     impl < //
-                        #(#trait_generic_lifetimes,)*
+                        #(#impl_generic_lifetimes,)*
                         #(#method_generics_lifetimes,)*
                         #(#method_generics_types,)*
-                        #(#trait_generic_types,)*
-                        #(#trait_generic_consts,)*
+                        #(#impl_generic_types,)*
+                        #(#impl_generic_consts,)*
                         #(#method_generics_consts,)*
                     > _interface::Serve< //
                         _interface::Json,
@@ -571,11 +574,11 @@ impl ImplItemMethodInfo {
                     #[doc = ""]
                     #(#attr_docs)*
                     impl < //
-                        #(#trait_generic_lifetimes,)*
+                        #(#impl_generic_lifetimes,)*
                         #(#method_generics_lifetimes,)*
                         #(#method_generics_types,)*
-                        #(#trait_generic_types,)*
-                        #(#trait_generic_consts,)*
+                        #(#impl_generic_types,)*
+                        #(#impl_generic_consts,)*
                         #(#method_generics_consts,)*
                     > #receiver_kind_trait_name< //
                         #trait_generic_args
@@ -606,11 +609,11 @@ impl ImplItemMethodInfo {
                     #[doc = ""]
                     #(#attr_docs)*
                     pub type Serve<
-                        #(#trait_generic_lifetimes,)*
+                        #(#impl_generic_lifetimes,)*
                         #(#method_generics_lifetimes,)*
                         #(#method_generics_types,)*
-                        #(#trait_generic_types,)*
-                        #(#trait_generic_consts,)*
+                        #(#impl_generic_types,)*
+                        #(#impl_generic_consts,)*
                         #(#method_generics_consts,)*
                     > = #trait_method_mod::serve::Serve<#trait_and_method_arg_idents>;
                 }
@@ -629,11 +632,11 @@ impl ImplItemMethodInfo {
                 #[doc = ""]
                 #(#attr_docs)*
                 pub type Request<
-                    #(#trait_generic_lifetimes,)*
+                    #(#impl_generic_lifetimes,)*
                     #(#method_generics_lifetimes,)*
                     #(#method_generics_types,)*
-                    #(#trait_generic_types,)*
-                    #(#trait_generic_consts,)*
+                    #(#impl_generic_types,)*
+                    #(#impl_generic_consts,)*
                     #(#method_generics_consts,)*
                 > = #trait_method_mod::request::Request<#trait_and_method_arg_idents>;
             };

@@ -1,3 +1,5 @@
+#![allow(unused_parens)]
+
 use crate as interface;
 use interface::contract;
 use near_sdk::{
@@ -17,7 +19,6 @@ pub struct Struct4 {
 /// (Trait4 Doc).
 #[contract(mod = "trait4")]
 #[allow(unused_variables)]
-#[allow(unused_parens)]
 pub trait Trait4 {
     fn fn_array(my_array: [bool; 2]);
     // fn fn_bare_fn(my_fn: fn(bool) -> bool);
@@ -40,7 +41,7 @@ pub trait Trait4 {
 }
 
 /// (Impl Trait4 for Struct4 Doc).
-#[contract(mod = "struct_", trait = "trait4")]
+#[contract(mod = "struct_4", trait = "trait4")]
 #[allow(unused_variables)]
 impl Trait4 for Struct4 {
     fn fn_array(my_array: [bool; 2]) {

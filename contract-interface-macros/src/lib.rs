@@ -5,6 +5,7 @@ mod core_impl;
 mod error;
 mod get_ident;
 mod replace_ident;
+mod replace_type_ident;
 
 use proc_macro::TokenStream;
 

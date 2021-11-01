@@ -1,5 +1,3 @@
-use crate::replace_ident::replace_ident_from_self_to_ident;
-
 /// Generics for vairous kinds of items.  
 #[derive(Debug, Clone)]
 pub struct Generics {
@@ -92,6 +90,7 @@ impl Generics {
         self.replace_from_self_to_ident(&_state)
     }
     pub fn replace_from_self_to_ident(mut self, ident: &syn::Ident) -> Self {
+        use crate::replace_ident::replace_ident_from_self_to_ident;
         for tp in self.types.values_mut() {
             for b in tp.bounds.iter_mut() {
                 // for `T: Trait<Self>` case
@@ -110,6 +109,34 @@ impl Generics {
             for b in pt.bounds.iter_mut() {
                 // for `T: Trait<Self>` cases
                 replace_ident_from_self_to_ident(b, ident);
+            }
+
+            new_type_bounds.insert(pt.bounded_ty.clone(), pt.clone());
+        }
+        self.type_bounds = new_type_bounds;
+
+        self
+    }
+    pub fn replace_from_self_to_type(mut self, to_ty: &syn::Type) -> Self {
+        use crate::replace_type_ident::replace_ident_from_self_to_type;
+        for tp in self.types.values_mut() {
+            for b in tp.bounds.iter_mut() {
+                // for `T: Trait<Self>` case
+                replace_ident_from_self_to_type(b, to_ty);
+            }
+            if let Some(d) = tp.default.as_mut() {
+                // for `T: Trait<Item=Self>` case
+                replace_ident_from_self_to_type(d, to_ty)
+            }
+        }
+
+        let mut new_type_bounds = indexmap::IndexMap::new();
+        for pt in self.type_bounds.values_mut() {
+            // for `Self: Trait` cases
+            replace_ident_from_self_to_type(&mut pt.bounded_ty, to_ty);
+            for b in pt.bounds.iter_mut() {
+                // for `T: Trait<Self>` cases
+                replace_ident_from_self_to_type(b, to_ty);
             }
 
             new_type_bounds.insert(pt.bounded_ty.clone(), pt.clone());
