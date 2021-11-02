@@ -1,3 +1,6 @@
+//! An example showing methods that use various kinds of attributes
+//! such as `init` and such.
+
 #![allow(unused_parens)]
 #![allow(unused_variables)]
 
@@ -5,11 +8,10 @@ use crate as interface;
 use interface::contract;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    near_bindgen, PanicOnDefault,
+    PanicOnDefault,
 };
 
 /// (Original Struct5 documentation)
-#[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
 pub struct Struct5 {
     a: u8,
@@ -25,8 +27,7 @@ pub trait Trait5 {
 }
 
 /// (Impl Trait5 for Struct5 Doc).
-#[contract(mod = "impl_struct_5", trait = "trait_5")]
-#[allow(unused_variables)]
+#[contract(mod = "impl_trait_5", trait = "trait_5")]
 impl Trait5 for Struct5 {
     #[contract(init())]
     fn method_init() -> Self {

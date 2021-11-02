@@ -1,6 +1,8 @@
-//! Example of defining an contract to be called by consumer contracts.
-//! (the consumer contracts still need to define their CallOut's)
+//! A dummy example which just tries to declare all sort of generic 
+//! parameters.
 //! 
+//! Please check [`api`] to see how to create `extern "C"`
+//! functions out of a generic trait impls.
 
 pub mod api;
 
@@ -8,11 +10,10 @@ use crate as interface;
 use interface::contract;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    near_bindgen, PanicOnDefault,
+    PanicOnDefault,
 };
 
 /// (Original Struct documentation)
-#[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
 pub struct Struct2 {
     a: u8,
@@ -64,7 +65,7 @@ TraitType: near_sdk::serde::Serialize + near_sdk::serde::de::DeserializeOwned + 
 }
 
 /// (Impl Trait2 for Struct Doc).
-#[contract(mod = "struct_2", trait = "trait_2")]
+#[contract(mod = "impl_trait_2", trait = "trait_2")]
 impl<
         //
         'trait_lt,

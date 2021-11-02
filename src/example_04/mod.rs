@@ -1,14 +1,17 @@
+//! An example showing methods that use various kinds of argument types
+//! such as `&T` and such.
+
 #![allow(unused_parens)]
+#![allow(unused_variables)]
 
 use crate as interface;
 use interface::contract;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
-    near_bindgen, PanicOnDefault,
+    PanicOnDefault,
 };
 
 /// (Original Struct4 documentation)
-#[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]
 pub struct Struct4 {
     a: u8,
@@ -17,8 +20,7 @@ pub struct Struct4 {
 }
 
 /// (Trait4 Doc).
-#[contract(mod = "trait4")]
-#[allow(unused_variables)]
+#[contract]
 pub trait Trait4 {
     fn fn_array(my_array: [bool; 2]);
     // fn fn_bare_fn(my_fn: fn(bool) -> bool);
@@ -41,8 +43,7 @@ pub trait Trait4 {
 }
 
 /// (Impl Trait4 for Struct4 Doc).
-#[contract(mod = "struct_4", trait = "trait4")]
-#[allow(unused_variables)]
+#[contract(mod = "impl_trait_4", trait = "trait_4")]
 impl Trait4 for Struct4 {
     fn fn_array(my_array: [bool; 2]) {
         unimplemented!()

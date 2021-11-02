@@ -1,3 +1,4 @@
+use contract_interface::contract;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::json_types::Base64VecU8;
 use near_sdk::require;
@@ -17,6 +18,7 @@ pub struct FungibleTokenMetadata {
     pub decimals: u8,
 }
 
+#[contract]
 pub trait FungibleTokenMetadataProvider {
     fn ft_metadata(&self) -> FungibleTokenMetadata;
 }

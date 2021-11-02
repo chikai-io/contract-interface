@@ -19,7 +19,8 @@ pub mod example_05;
 pub mod expanded_test;
 
 pub mod macros {
-    pub use extern_struct_;
-    pub use extern_struct_2;
-    pub use extern_struct_4;
+    pub use extern_impl_trait_1;
+    pub use extern_impl_trait_2;
+    pub use extern_impl_trait_4;
+    pub use extern_impl_trait_5;
 }
