@@ -24,23 +24,22 @@ members = [
 ]
 
 [[example]]
-name = "fungible-token"
-path = "examples/fungible-token"
+name = "example_01"
+path = "examples/example_01/lib.rs"
 crate-type = ["cdylib"]
 
+[[example]]
+name = "example_02"
+path = "examples/example_02/lib.rs"
+crate-type = ["cdylib"]
 
-# [[example]]
-# name = "call_in_01"
-# crate-type = ["cdylib"]
+[[example]]
+name = "example_04"
+path = "examples/example_04/lib.rs"
+crate-type = ["cdylib"]
 
-# [[example]]
-# name = "call_in_02"
-# crate-type = ["cdylib"]
+[[example]]
+name = "example_05"
+path = "examples/example_05/lib.rs"
+crate-type = ["cdylib"]
 
-# [[example]]
-# name = "call_out_01"
-# crate-type = ["cdylib"]
-
-# [[example]]
-# name = "call_out_02"
-# crate-type = ["cdylib"]

@@ -2,8 +2,7 @@
 
 #![allow(unused_variables)]
 
-use crate as interface;
-use interface::contract;
+use contract_interface::contract;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     PanicOnDefault,
@@ -23,7 +22,6 @@ pub struct Struct1 {
 
 /// (Trait1 Doc).
 #[contract]
-#[allow(unused_variables)]
 pub trait Trait1 {
     /// (method_ref_mut Doc).
     fn method_ref_mut(&mut self, my_bool: bool) {
@@ -112,4 +110,13 @@ impl Trait1 for Struct1 {
     fn method_no_arg() {
         unimplemented!()
     }
+}
+
+/// Note:  
+/// Because of how `#[macro_use]` works, this module must be
+/// at root and must come _after_ the referenced macros
+/// are defined.  
+/// Ie. This should be the last thing at the root of the project.
+pub mod macros {
+    pub use extern_impl_trait_1;
 }

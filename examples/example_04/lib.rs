@@ -4,8 +4,7 @@
 #![allow(unused_parens)]
 #![allow(unused_variables)]
 
-use crate as interface;
-use interface::contract;
+use contract_interface::contract;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     PanicOnDefault,
@@ -83,4 +82,13 @@ impl Trait4 for Struct4 {
     fn fn_tuple(my_tuple: (bool, bool)) {
         unimplemented!()
     }
+}
+
+/// Note:  
+/// Because of how `#[macro_use]` works, this module must be
+/// at root and must come _after_ the referenced macros
+/// are defined.  
+/// Ie. This should be the last thing at the root of the project.
+pub mod macros {
+    pub use extern_impl_trait_4;
 }

@@ -2,23 +2,17 @@
 extern crate proc_macro;
 
 mod core_impl;
+mod crate_name;
 mod error;
 mod get_ident;
 mod replace_ident;
 mod replace_type_ident;
 
-use proc_macro::TokenStream;
-
 use self::core_impl::*;
-use darling::FromMeta;
-pub(crate) use error::Result;
+pub(crate) use crate_name::{crate_name, crate_name_str};
+use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-
-#[derive(Debug, FromMeta)]
-pub(crate) struct ImplContractArgs {
-    name: syn::Ident,
-}
 
 // TODO: describe all places where the attribute can be applied,
 // their overall objectives/customization.
@@ -74,26 +68,4 @@ fn contract_internal(
         )
         .into())
     }
-}
-
-fn crate_name_str(name: &str) -> Result<String> {
-    use proc_macro_crate::FoundCrate;
-    let name = match proc_macro_crate::crate_name(name)
-        .map_err(|e| syn::Error::new(Span::call_site(), e))?
-    {
-        FoundCrate::Itself => "crate".into(),
-        FoundCrate::Name(name) => name,
-    };
-    Ok(name)
-}
-
-fn crate_name(name: &str) -> Result<syn::Ident> {
-    use proc_macro_crate::FoundCrate;
-    let name = match proc_macro_crate::crate_name(name)
-        .map_err(|e| syn::Error::new(Span::call_site(), e))?
-    {
-        FoundCrate::Itself => syn::Ident::new("crate", Span::call_site()),
-        FoundCrate::Name(name) => syn::Ident::new(&name, Span::call_site()),
-    };
-    Ok(name)
 }

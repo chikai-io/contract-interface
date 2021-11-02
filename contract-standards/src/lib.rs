@@ -5,6 +5,11 @@ pub mod pause;
 #[macro_use]
 pub mod storage_management;
 
+/// Note:  
+/// Because of how `#[macro_use]` works, this module must be
+/// at root and must come _after_ the referenced macros
+/// are defined.  
+/// Ie. This should be the last thing at the root of the project.
 pub mod macros {
 
     /// Based on implementations
