@@ -31,21 +31,21 @@ _settings.json_
 "rust-analyzer.checkOnSave.command": "clippy",
 ```
 
-- [example_01](./examples/example_01/lib.rs).  
-  Methods that have different cases of `self`.  
-  [Generated builder](./examples/example_01/client.rs) for making external calls.  
-  For the motivation on this, please see [#4](https://github.com/chikai-io/contract-interface/issues/4) and [#14](https://github.com/chikai-io/contract-interface/issues/14).  
-  [Manually created](./examples/example_01/api_manual.rs) `extern "C"` functions for the binary.  
-  [Automatically created](./examples/example_01/api.rs) `extern "C"` functions for the binary, 
+- [example_01](./examples/example_01/lib.rs):  
+  Has methods that have different cases of `self`.  
+  Uses a [generated builder](./examples/example_01/client.rs) for making external calls.  
+  For the motivation on this, please check [#4](https://github.com/chikai-io/contract-interface/issues/4) and [#14](https://github.com/chikai-io/contract-interface/issues/14).  
+  Shows [manually created](./examples/example_01/api_manual.rs) `extern "C"` functions for the binary.  
+  Has [automatically created](./examples/example_01/api.rs) `extern "C"` functions for the binary, 
   that actually get created after calling a generated macro. 
-- [example_02](./examples/example_02/lib.rs).  
-  Traits that use many types of generics (all dummy usages).  
-  [Automatically created](./examples/example_02/api.rs) `extern "C"` functions for the binary, 
+- [example_02](./examples/example_02/lib.rs):  
+  Has traits that use many types of generics (all dummy usages).  
+  Has [automatically created](./examples/example_02/api.rs) `extern "C"` functions for the binary, 
   that actually get created after calling a geenrated macro.    
   Note that all generics must be known or defined at that time.
 - example_03 (currently empty).  
-- [example_04](./examples/example_04/lib.rs).  
-  Methods that have some argument diversity,  
+- [example_04](./examples/example_04/lib.rs):  
+  Has methods that have some argument diversity,  
   such as receiving references.
-- [example_05](./examples/example_05/lib.rs).  
-  Methods that use some attributes, such as `init` and such).
+- [example_05](./examples/example_05/lib.rs):  
+  Has methods that use some attributes, such as `init` and such).
