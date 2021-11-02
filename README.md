@@ -23,14 +23,12 @@ All examples are currently _dummy_ and drafty, where all method implementations 
 It is recommended to run `cargo doc --no-deps --examples --open` in order to see what items were created and their generated documentation - note that you can change the example number in the openned url in your browser.  
 If you're visualizing/editing them on vscode with rust-analyzer, to best see the autocompletion hints and documentation of various items, the following settings are recommended:
 
+_settings.json_
 ```json
-// settings.json
-// ...
 "rust-analyzer.procMacro.enable": true,
 "rust-analyzer.experimental.procAttrMacros": true,
 "rust-analyzer.checkOnSave.allTargets": true,
 "rust-analyzer.checkOnSave.command": "clippy",
-// ...
 ```
 
 - [example_01](./examples/example_01/lib.rs).
