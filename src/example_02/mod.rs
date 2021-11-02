@@ -24,7 +24,7 @@ pub struct Struct2 {
 #[contract]
 pub trait Trait2< //
         'trait_lt,
-        TraitType: std::fmt::Debug,
+        TraitType,
         const TRAIT_CONST: bool
 >: Clone
 where 
@@ -46,14 +46,12 @@ TraitType: near_sdk::serde::Serialize + near_sdk::serde::de::DeserializeOwned + 
         MethodTypeB
     >(
         &mut self,
+
         _my_string: String,
+
         #[contract(attr(serde(bound = "")))]
         _my_m: TraitType,
-        // (_my_y, _my_bool): (MethodTypeA, bool),
-        // _my_y2: &'method_lt MethodTypeA,
 
-        // TODO: attribute to implicitly consider
-        // Self (aka. _State) as implementing the trait itself
         _my_type_a: Self::TraitInternalTypeA,
     ) -> MethodTypeB
     where
@@ -70,8 +68,7 @@ TraitType: near_sdk::serde::Serialize + near_sdk::serde::de::DeserializeOwned + 
 impl<
         //
         'trait_lt,
-        TraitType: std::fmt::Debug,
-        // TraitType: std::fmt::Debug + near_sdk::serde::de::DeserializeOwned,
+        TraitType,
         const TRAIT_CONST: bool,
     >
     Trait2<

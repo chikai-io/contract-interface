@@ -18,18 +18,20 @@ pub enum ReceiverKind {
     Ref,
     Owned,
     Stateless,
+    StatelessInit,
 }
 
-impl From<Option<syn::Receiver>> for ReceiverKind {
-    fn from(r: Option<syn::Receiver>) -> Self {
-        match r {
-            Some(r) => match (r.reference.is_some(), r.mutability.is_some()) {
+impl ReceiverKind {
+    pub fn from_syn(r: &Option<syn::Receiver>, init: bool) -> Self {
+        match (init, r) {
+            (true, _) => ReceiverKind::StatelessInit,
+            (false, Some(r)) => match (r.reference.is_some(), r.mutability.is_some()) {
                 (true, true) => ReceiverKind::RefMut,
                 (true, false) => ReceiverKind::Ref,
                 (false, true) => ReceiverKind::Owned,
                 (false, false) => ReceiverKind::Owned,
             },
-            None => ReceiverKind::Stateless,
+            (false, None) => ReceiverKind::Stateless,
         }
     }
 }
@@ -42,6 +44,7 @@ impl ReceiverKind {
             ReceiverKind::Ref => quote!(_interface::ServeRef),
             ReceiverKind::Owned => quote!(_interface::ServeOwned),
             ReceiverKind::Stateless => quote!(_interface::ServeStateless),
+            ReceiverKind::StatelessInit => quote!(_interface::ServeStatelessInit),
         }
     }
     pub fn quote_trait_link_str(&self) -> &str {
@@ -50,6 +53,7 @@ impl ReceiverKind {
             ReceiverKind::Ref => "[`ServeRef`](_interface::ServeRef)",
             ReceiverKind::Owned => "[`ServeOwned`](_interface::ServeOwned)",
             ReceiverKind::Stateless => "[`ServeStateless`](_interface::ServeStateless)",
+            ReceiverKind::StatelessInit => "[`ServeStatelessInit`](_interface::ServeStatelessInit)",
         }
     }
     pub fn quote_self_argument(&self) -> proc_macro2::TokenStream {
@@ -59,6 +63,7 @@ impl ReceiverKind {
             ReceiverKind::Ref => quote!(&Self::State,),
             ReceiverKind::Owned => quote!(Self::State,),
             ReceiverKind::Stateless => quote!(),
+            ReceiverKind::StatelessInit => quote!(),
         }
     }
 }
@@ -284,7 +289,10 @@ fn adapt_argument(
 }
 
 impl Inputs {
-    pub fn new<'a>(inputs: impl Iterator<Item = &'a mut syn::FnArg>) -> error::Result<Self> {
+    pub fn new<'a>(
+        inputs: impl Iterator<Item = &'a mut syn::FnArg>,
+        method_is_init: bool,
+    ) -> error::Result<Self> {
         let mut receiver = None;
         let mut args = Vec::new();
         for arg in inputs {
@@ -352,7 +360,7 @@ impl Inputs {
                 }
             }
         }
-        let receiver_kind = receiver.clone().into();
+        let receiver_kind = ReceiverKind::from_syn(&receiver, method_is_init);
 
         Ok(Self {
             receiver,

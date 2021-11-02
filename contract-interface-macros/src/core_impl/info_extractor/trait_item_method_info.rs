@@ -1,3 +1,4 @@
+use super::init_attr;
 use super::inputs::Inputs;
 use super::item_generics::Generics;
 use super::meta_attrs;
@@ -27,15 +28,18 @@ pub struct RawAttrs {
     /// The name that will be used for the module that will contain
     /// the generated items.
     #[darling(default, rename = "mod")]
-    method_mod_name: Option<syn::Ident>,
+    pub method_mod_name: Option<syn::Ident>,
+
+    #[darling(default)]
+    pub init: Option<init_attr::InitAttr>,
 
     /// Forward attributes to be attached into the `Args` structure.
     #[darling(default)]
-    args_attr: Option<syn::Meta>,
+    pub args_attr: Option<syn::Meta>,
 
     /// Forward attributes to be attached into the `Return` structure.
     #[darling(default)]
-    return_attr: Option<syn::Meta>,
+    pub return_attr: Option<syn::Meta>,
 }
 
 #[derive(Debug)]
@@ -43,6 +47,8 @@ pub struct Attrs {
     /// The name that will be used for the module that will contain
     /// the generated items.
     pub method_mod_name: syn::Ident,
+
+    pub init: Option<init_attr::InitAttr>,
 
     // TODO: use value on code gen
     /// Forward attributes to be attached into the `Args` structure.
@@ -83,6 +89,7 @@ impl TraitItemMethodInfo {
                     let res = original.sig.ident.to_string();
                     syn::Ident::new(&res, proc_macro2::Span::call_site())
                 }),
+                init: attrs.init,
                 args_attr,
                 return_attr,
             }
@@ -90,7 +97,17 @@ impl TraitItemMethodInfo {
 
         let generics = Generics::new(&original.sig.generics).replace_from_self_to_state();
 
-        let inputs = Inputs::new(original.sig.inputs.iter_mut())?.replace_from_self_to_state();
+        let inputs = Inputs::new(original.sig.inputs.iter_mut(), attrs.init.is_some())?
+            .replace_from_self_to_state();
+
+        if attrs.init.is_some() && inputs.receiver.is_some() {
+            use syn::spanned::Spanned;
+            return Err(syn::Error::new(
+                inputs.receiver.span(),
+                "Init methods can't have `self` parameter as it implies an existing state",
+            )
+            .into());
+        };
 
         let mut ret: syn::ReturnType = original.sig.output.clone();
         replace_ident_from_self_to_state(&mut ret);

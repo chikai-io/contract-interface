@@ -1,7 +1,7 @@
 pub use contract_interface_macros::contract;
 pub use contract_interface_types::{
     borsh, json, request, Borsh, FromBytes, Json, Request, Serve, ServeOwned, ServeRef,
-    ServeRefMut, ServeStateless, ToBytes,
+    ServeRefMut, ServeStateless, ServeStatelessInit, ToBytes,
 };
 
 #[macro_use]
@@ -12,6 +12,9 @@ pub mod example_02;
 pub mod example_03;
 #[macro_use]
 pub mod example_04;
+
+#[macro_use]
+pub mod example_05;
 
 pub mod expanded_test;
 

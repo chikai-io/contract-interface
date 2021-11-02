@@ -10,5 +10,4 @@ use near_sdk::{
     near_bindgen, PanicOnDefault,
 };
 
-use crate::example_01::*;
 use near_sdk::serde;

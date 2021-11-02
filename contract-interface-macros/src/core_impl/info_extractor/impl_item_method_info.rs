@@ -1,3 +1,4 @@
+use super::init_attr;
 use super::inputs::Inputs;
 use super::item_generics::Generics;
 use super::meta_attrs;
@@ -29,7 +30,7 @@ pub struct RawAttrs {
     module_name: Option<syn::Ident>,
 
     #[darling(default)]
-    init: Option<InitAttr>,
+    init: Option<init_attr::InitAttr>,
 
     #[darling(default)]
     payable: Option<bool>,
@@ -41,19 +42,13 @@ pub struct RawAttrs {
     allow_temporary_state: Option<bool>,
 }
 
-#[derive(Debug, FromMeta)]
-pub struct InitAttr {
-    #[darling(default)]
-    pub ignore_state: Option<bool>,
-}
-
 #[derive(Debug)]
 pub struct Attrs {
     /// The trait name that will be used to generate the module.  
     /// eg. `mod name {}`
     pub module_name: syn::Ident,
 
-    pub init: Option<InitAttr>,
+    pub init: Option<init_attr::InitAttr>,
 
     pub payable: bool,
 
@@ -90,7 +85,7 @@ impl ImplItemMethodInfo {
 
         let generics = Generics::new(&original.sig.generics);
 
-        let inputs = Inputs::new(original.sig.inputs.iter_mut())?;
+        let inputs = Inputs::new(original.sig.inputs.iter_mut(), attrs.init.is_some())?;
 
         if attrs.init.is_some() && inputs.receiver.is_some() {
             use syn::spanned::Spanned;

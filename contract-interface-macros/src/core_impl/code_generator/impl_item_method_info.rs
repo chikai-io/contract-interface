@@ -57,8 +57,6 @@ impl ImplItemMethodInfo {
         let method_mod_name = &self.attrs.module_name;
         let attr_docs = &self.doc_attrs;
 
-        // Ok(quote! {})
-
         let state_ty = &impl_info.self_ty;
         let res = if let Some(trait_path) = &impl_info.trait_path {
             let last_segment = if let Some(s) = trait_path.segments.iter().rev().next() {
@@ -71,7 +69,6 @@ impl ImplItemMethodInfo {
                 )
                 .into());
             };
-            let last_segment_ident = &last_segment.ident;
             let mut trait_generics_lifetimes_idents = vec![];
             let mut trait_generics_type_or_const_idents = vec![];
             let mut trait_generics_const_exprs = vec![];
@@ -130,16 +127,18 @@ impl ImplItemMethodInfo {
                 .into());
                 }
             }
-            let trait_args_with_state = quote! {
-                #(#trait_generics_lifetimes_idents,)*
-                #state_ty,
-                #(#trait_generics_type_or_const_idents,)*
-                #(#trait_generics_const_exprs,)*
-            };
-            let before_last_segments = trait_path.segments.iter().rev().skip(1).collect::<Vec<_>>();
-            let trait_args_with_state_path = quote! {
-                #(#before_last_segments::)*#last_segment_ident<#trait_args_with_state>
-            };
+
+            // let last_segment_ident = &last_segment.ident;
+            // let trait_args_with_state = quote! {
+            //     #(#trait_generics_lifetimes_idents,)*
+            //     #state_ty,
+            //     #(#trait_generics_type_or_const_idents,)*
+            //     #(#trait_generics_const_exprs,)*
+            // };
+            // let before_last_segments = trait_path.segments.iter().rev().skip(1).collect::<Vec<_>>();
+            // let trait_args_with_state_path = quote! {
+            //     #(#before_last_segments::)*#last_segment_ident<#trait_args_with_state>
+            // };
 
             let method_generics_lifetimes = self.generics.lifetimes.keys().collect::<Vec<_>>();
             let method_generics_types = self.generics.types.keys().collect::<Vec<_>>();
@@ -242,6 +241,8 @@ impl ImplItemMethodInfo {
                 }
             };
 
+            let recv_kind = &self.inputs.receiver_kind;
+
             let (return_ident, return_type, return_value);
             match &self.ret {
                 syn::ReturnType::Default => {
@@ -254,14 +255,15 @@ impl ImplItemMethodInfo {
                     //
                     return_ident = quote!(ret);
                     return_type = {
-                        let recv_kind = &self.inputs.receiver_kind;
-                        if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+                        if matches!(
+                            recv_kind,
+                            inputs::ReceiverKind::Owned | inputs::ReceiverKind::StatelessInit
+                        ) {
                             quote!(#ty::State)
                         } else {
                             quote!(#ty)
                         }
                     };
-                    let recv_kind = &self.inputs.receiver_kind;
 
                     let return_value_tmp = quote! {
                         let ret = #trait_method_mod::Return::<
@@ -273,24 +275,24 @@ impl ImplItemMethodInfo {
                         };
                     };
                     use inputs::ReceiverKind;
-                    return_value = if matches!(recv_kind, ReceiverKind::Owned) {
-                        quote! {
-                            #return_value_tmp
-                            ret.value
-                        }
-                    } else {
-                        quote! {
-                            #return_value_tmp
-                            Some(ret)
-                        }
-                    };
+                    return_value =
+                        if matches!(recv_kind, ReceiverKind::Owned | ReceiverKind::StatelessInit) {
+                            quote! {
+                                #return_value_tmp
+                                ret.value
+                            }
+                        } else {
+                            quote! {
+                                #return_value_tmp
+                                Some(ret)
+                            }
+                        };
                 }
             };
 
             let serve_fn = {
                 use inputs::ReceiverKind;
 
-                let init = self.attrs.init.is_some();
                 // init_ignore_state is false if it's set to false or if it's missing
                 let init_ignore_state = self
                     .attrs
@@ -299,11 +301,12 @@ impl ImplItemMethodInfo {
                     .and_then(|i| i.ignore_state)
                     .unwrap_or_default();
 
-                let init_check = if init && !init_ignore_state {
-                    quote!(Self::panic_on_already_existing_state())
-                } else {
-                    quote!()
-                };
+                let init_check =
+                    if matches!(recv_kind, ReceiverKind::StatelessInit) && !init_ignore_state {
+                        quote!(Self::panic_on_already_existing_state();)
+                    } else {
+                        quote!()
+                    };
 
                 let payable = if self.attrs.payable {
                     quote!()
@@ -349,84 +352,80 @@ impl ImplItemMethodInfo {
                     quote!(Self::deserialize_args_from_input())
                 };
 
-                let recv_kind = &self.inputs.receiver_kind;
-                let state_load = if init {
+                // note: state initialization based on Defaults are completely disallowed.
+                // all states that will be initialized and saved must be explicitly init
+                //
+                // the only situation where a state can be created from a default impl
+                // is on a ref self method, and only if it has a
+                // #[contract(allow_temporary_state)], in which case that default state will
+                // stil not even be stored.
+                let state_load = match recv_kind {
+                    ReceiverKind::RefMut => {
+                        quote!(let mut contract: Self::State = Self::state_read_or_panic();)
+                    }
+                    ReceiverKind::Ref => {
+                        if self.attrs.allow_temporary_state {
+                            quote!(let mut contract: Self::State = Self::state_read_or_default();)
+                        } else {
+                            quote!(let mut contract: Self::State = Self::state_read_or_panic();)
+                        }
+                    }
+                    ReceiverKind::Owned => {
+                        quote!(let mut contract: Self::State = Self::state_read_or_panic();)
+                    }
+                    ReceiverKind::Stateless => quote!(let _contract = ();),
+
                     // just declare the state and set it's type,
                     // it will be initialized from the method's result later on
-                    quote!(let contract: Self::State;)
-                } else {
-                    // note: state initialization based on Defaults are completely disallowed.
-                    // all states that will be initialized and saved must be explicitly init
-                    //
-                    // the only situation where a state can be created from a default impl
-                    // is on a ref self method, and only if it has a
-                    // #[contract(allow_temporary_state)], in which case that default state will
-                    // stil not even be stored.
-                    match recv_kind {
-                        ReceiverKind::RefMut => {
-                            quote!(let mut contract: Self::State = Self::state_read_or_panic();)
-                        }
-                        ReceiverKind::Ref => {
-                            if self.attrs.allow_temporary_state {
-                                quote!(let mut contract: Self::State = Self::state_read_or_default();)
-                            } else {
-                                quote!(let mut contract: Self::State = Self::state_read_or_panic();)
-                            }
-                        }
-                        ReceiverKind::Owned => {
-                            quote!(let mut contract: Self::State = Self::state_read_or_panic();)
-                        }
-                        ReceiverKind::Stateless => quote!(let _contract = ();),
-                    }
+                    ReceiverKind::StatelessInit => quote!(
+                        let contract: Self::State;
+                    ),
                 };
 
                 // let result = method(#method_params);
                 let method_params = match recv_kind {
                     ReceiverKind::Stateless => quote!(args),
+                    ReceiverKind::StatelessInit => quote!(args),
                     ReceiverKind::RefMut => quote!(&mut contract, args),
                     ReceiverKind::Ref => quote!(&contract, args),
                     ReceiverKind::Owned => quote!(contract, args),
                 };
 
-                let result_serialize = if init || matches!(recv_kind, ReceiverKind::Owned) {
-                    // init and owned are required to return exactly a State
-                    // so they can never have other output values
-                    quote!()
-                } else {
-                    // other kind of methods can have output normally
-                    quote!(Self::may_serialize_return_as_output(result);)
-                };
+                let result_serialize =
+                    if matches!(recv_kind, ReceiverKind::Owned | ReceiverKind::StatelessInit) {
+                        // init and owned are required to return exactly a State
+                        // so they can never have other output values
+                        quote!()
+                    } else {
+                        // other kind of methods can have output normally
+                        quote!(Self::may_serialize_return_as_output(result);)
+                    };
 
-                let state_write = if init {
-                    // init should always (over)write into the state
-                    quote! {
-                        contract = match result {
-                            Some(res) => res.0,
-                            // TODO: try to refactor the traits/etc so this is a compile-time error
-                            None => _near_sdk::env::panic_str("Expected the return of some state value, but none were found"),
-                        };
+                let state_write = match recv_kind {
+                    // ref mut self always (over)writes state
+                    ReceiverKind::RefMut => {
+                        quote!(Self::state_write(&contract);)
+                    }
+
+                    // ref self never (over)writes state
+                    ReceiverKind::Ref => quote!(),
+
+                    // owned always overwrites state, but will give compile-error
+                    // if returned value is not a state
+                    ReceiverKind::Owned => quote! {
+                        contract = result;
                         Self::state_write(&contract);
-                    }
-                } else {
-                    match recv_kind {
-                        // ref mut self always (over)writes state
-                        ReceiverKind::RefMut => {
-                            quote!(Self::state_write(&contract);)
-                        }
+                    },
 
-                        // ref self never (over)writes state
-                        ReceiverKind::Ref => quote!(),
+                    // stateless methods never (over)writes state
+                    ReceiverKind::Stateless => quote!(),
 
-                        // owned always overwrites state, but will give compile-error
-                        // if returned value is not a state
-                        ReceiverKind::Owned => quote! {
-                            contract = result;
-                            Self::state_write(&contract);
-                        },
-
-                        // stateless methods never (over)writes state
-                        ReceiverKind::Stateless => quote!(),
-                    }
+                    // init always overwrites state, but will give compile-error
+                    // if returned value is not a state
+                    ReceiverKind::StatelessInit => quote! {
+                        contract = result;
+                        Self::state_write(&contract);
+                    },
                 };
                 quote! {
                     fn serve(method: Self::Method) {
@@ -496,11 +495,26 @@ impl ImplItemMethodInfo {
                         Self::serve(method_wrapper);
                     }
                 },
+                inputs::ReceiverKind::StatelessInit => quote! {
+                    fn extern_serve() {
+                        use _interface::ServeStatelessInit;
+                        let method_wrapper = |mut args: Self::Args| {
+                            let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
+                                #method_arg_idents
+                            > (#(#args_pats),*);
+                            #return_value
+                        };
+                        Self::serve(method_wrapper);
+                    }
+                },
             };
 
             let interface_serve = if impl_info.attrs.serve {
                 let recv_kind = &self.inputs.receiver_kind;
-                let result_serializer = if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+                let result_serializer = if matches!(
+                    recv_kind,
+                    inputs::ReceiverKind::Owned | inputs::ReceiverKind::StatelessInit
+                ) {
                     quote! {
                         _interface::Borsh,
                     }
@@ -545,7 +559,10 @@ impl ImplItemMethodInfo {
             let interface_args_serve = if impl_info.attrs.serve {
                 let recv_kind = &self.inputs.receiver_kind;
                 let trait_generic_args = {
-                    if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+                    if matches!(
+                        recv_kind,
+                        inputs::ReceiverKind::Owned | inputs::ReceiverKind::StatelessInit
+                    ) {
                         quote! {
                                 _interface::Json,
                                 _Diverger
@@ -559,7 +576,10 @@ impl ImplItemMethodInfo {
                     }
                 };
                 let method_type_return = {
-                    if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+                    if matches!(
+                        recv_kind,
+                        inputs::ReceiverKind::Owned | inputs::ReceiverKind::StatelessInit
+                    ) {
                         quote!(Self::State)
                     } else {
                         quote!(Option<Self::Return>)

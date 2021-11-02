@@ -47,7 +47,8 @@ impl TraitItemMethodInfo {
         let args_method_generic_consts = self.generics.consts.values().collect::<Vec<_>>();
 
         let outer_args = &self.inputs.args;
-        let (args, args_forward_attrs): (Vec<_>, Vec<_>) = outer_args
+        // TODO: refactor args and fake_args so they are less confusing
+        let (_args, args_forward_attrs): (Vec<_>, Vec<_>) = outer_args
             .iter()
             .map(|a| {
                 let mut arg = a.arg.clone();
@@ -181,7 +182,10 @@ impl TraitItemMethodInfo {
         let return_serializer = {
             use crate::core_impl::info_extractor::inputs;
             let recv_kind = &self.inputs.receiver_kind;
-            if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+            if matches!(
+                recv_kind,
+                inputs::ReceiverKind::Owned | inputs::ReceiverKind::StatelessInit
+            ) {
                 quote! {
                     #[derive(_near_sdk::borsh::BorshSerialize)]
                 }
@@ -196,7 +200,10 @@ impl TraitItemMethodInfo {
         let return_serializer_skip = {
             use crate::core_impl::info_extractor::inputs;
             let recv_kind = &self.inputs.receiver_kind;
-            if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+            if matches!(
+                recv_kind,
+                inputs::ReceiverKind::Owned | inputs::ReceiverKind::StatelessInit
+            ) {
                 quote! {
                     #[borsh_skip]
                 }
@@ -209,7 +216,10 @@ impl TraitItemMethodInfo {
         let return_serializer_bounds = {
             use crate::core_impl::info_extractor::inputs;
             let recv_kind = &self.inputs.receiver_kind;
-            if matches!(recv_kind, inputs::ReceiverKind::Owned) {
+            if matches!(
+                recv_kind,
+                inputs::ReceiverKind::Owned | inputs::ReceiverKind::StatelessInit
+            ) {
                 quote! {
                     _State: near_sdk::borsh::BorshSerialize
                 }
