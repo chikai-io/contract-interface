@@ -126,7 +126,7 @@ version = "0.0.1"
 dependencies = [
  "contract-interface-macros",
  "contract-interface-types",
- "near-contract-standards",
+ "contract-standards",
  "near-sdk",
 ]
 

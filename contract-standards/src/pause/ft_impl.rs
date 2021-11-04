@@ -1,12 +1,15 @@
 use crate::fungible_token::core::{fungible_token_core, FungibleTokenCore};
 use crate::pause::Pause;
-use contract_interface::contract;
+use contract_interface::{contract, Final, Identity, Lens, NonLensing};
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
+
+// struct ForbidLens;
+// impl<Ft> !Lens<Pause<Ft>, Ft> for ForbidLens {}
 
 #[contract(mod = "pause_fungible_token", trait = "fungible_token_core")]
 impl<Ft> FungibleTokenCore for Pause<Ft>
 where
-    Ft: FungibleTokenCore + Default + BorshSerialize + BorshDeserialize,
+    Ft: FungibleTokenCore<Final, Ft> + Default + BorshSerialize + BorshDeserialize,
 {
     fn ft_transfer(
         &mut self,

@@ -1,6 +1,6 @@
 use crate::fungible_token::core::FungibleTokenCore;
 use crate::fungible_token::resolver::FungibleTokenResolver;
-use contract_interface::contract;
+use contract_interface::{contract, Final, Identity, NonLensing};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupMap;
 use near_sdk::json_types::U128;

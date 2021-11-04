@@ -6,6 +6,6 @@ extern crate self as contract_interface;
 
 pub use contract_interface_macros::contract;
 pub use contract_interface_types::{
-    borsh, json, request, Borsh, FromBytes, Json, Request, Serve, ServeOwned, ServeRef,
+    borsh, json, optics::*, request, Borsh, FromBytes, Json, Request, Serve, ServeOwned, ServeRef,
     ServeRefMut, ServeStateless, ServeStatelessInit, ToBytes,
 };

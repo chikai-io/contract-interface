@@ -1,10 +1,12 @@
+#![allow(invalid_type_param_default)]
+
 use contract_interface::contract;
 use near_sdk::json_types::U128;
 use near_sdk::AccountId;
 use near_sdk::PromiseOrValue;
 
 #[contract]
-pub trait FungibleTokenCore {
+pub trait FungibleTokenCore<L = Final, Ft = Self> {
     /// Transfers positive `amount` of tokens from the `env::predecessor_account_id` to `receiver_id`.
     /// Both accounts must be registered with the contract for transfer to succeed. (See [NEP-145](https://github.com/near/NEPs/discussions/145))
     /// This method must to be able to accept attached deposits, and must not panic on attached deposit.
@@ -54,3 +56,209 @@ pub trait FungibleTokenCore {
     /// Returns the balance of the account. If the account doesn't exist must returns `"0"`.
     fn ft_balance_of(&self, account_id: AccountId) -> U128;
 }
+
+use contract_interface::{Final, Identity, Lens};
+
+use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
+
+#[contract(mod = "impl_inheritance", trait = "fungible_token_core")]
+impl<T, L, Ft> FungibleTokenCore<L, Ft> for T
+where
+    Ft: FungibleTokenCore<Final, Ft> + Default,
+    L: Lens<T, Ft> + Default,
+    T: Default + BorshSerialize + BorshDeserialize,
+{
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+        L::with_mut(self, |inner: &mut Ft| {
+            Ft::ft_transfer(inner, receiver_id, amount, memo)
+        })
+    }
+
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        L::with_mut(self, |inner: &mut Ft| {
+            Ft::ft_transfer_call(inner, receiver_id, amount, memo, msg)
+        })
+    }
+
+    fn ft_total_supply(&self) -> U128 {
+        L::with_ref(self, |inner: &Ft| Ft::ft_total_supply(inner))
+    }
+
+    fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+        L::with_ref(self, |inner: &Ft| Ft::ft_balance_of(inner, account_id))
+    }
+}
+
+/*
+pub mod inheritance {
+    use super::{fungible_token_core, FungibleTokenCore};
+
+    use contract_interface::contract;
+    use contract_interface::Lens;
+    use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
+    use near_sdk::json_types::U128;
+    use near_sdk::AccountId;
+    use near_sdk::PromiseOrValue;
+
+    #[contract(mod = "impl_inheritance", trait = "fungible_token_core")]
+    impl<T, Ft> FungibleTokenCore<Ft> for T
+    where
+        Ft: FungibleTokenCore<Ft> + Default,
+        T: BorshSerialize + BorshDeserialize + Default + Lens<Ft>,
+    {
+        fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+            self.with_mut(|inner: &mut Ft| Ft::ft_transfer(inner, receiver_id, amount, memo))
+        }
+
+        fn ft_transfer_call(
+            &mut self,
+            receiver_id: AccountId,
+            amount: U128,
+            memo: Option<String>,
+            msg: String,
+        ) -> PromiseOrValue<U128> {
+            self.with_mut(|inner: &mut Ft| {
+                Ft::ft_transfer_call(inner, receiver_id, amount, memo, msg)
+            })
+        }
+
+        fn ft_total_supply(&self) -> U128 {
+            self.with_ref(|inner: &Ft| Ft::ft_total_supply(inner))
+        }
+
+        fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+            self.with_ref(|inner: &Ft| Ft::ft_balance_of(inner, account_id))
+        }
+    }
+
+    // #[contract(mod = "impl_inheritance", trait = "fungible_token_core")]
+    // impl<Outer, Ft> FungibleTokenCore<Ft> for Inherited<Outer, Ft>
+    // where
+    //     Inherited<Outer, Ft>: Lens<Ft>,
+    //     Ft: FungibleTokenCore + Default,
+    //     Outer: BorshSerialize + BorshDeserialize + Default,
+    // {
+    //     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+    //         self.with_mut(|inner: &mut Ft| Ft::ft_transfer(inner, receiver_id, amount, memo))
+    //     }
+
+    //     fn ft_transfer_call(
+    //         &mut self,
+    //         receiver_id: AccountId,
+    //         amount: U128,
+    //         memo: Option<String>,
+    //         msg: String,
+    //     ) -> PromiseOrValue<U128> {
+    //         self.with_mut(|inner: &mut Ft| {
+    //             Ft::ft_transfer_call(inner, receiver_id, amount, memo, msg)
+    //         })
+    //     }
+
+    //     fn ft_total_supply(&self) -> U128 {
+    //         self.with_ref(|inner: &Ft| Ft::ft_total_supply(inner))
+    //     }
+
+    //     fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+    //         self.with_ref(|inner: &Ft| Ft::ft_balance_of(inner, account_id))
+    //     }
+    // }
+}
+
+*/
+/*
+/*
+pub trait FungibleTokenCoreDiverged<_Diverger> {
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128>;
+    fn ft_total_supply(&self) -> U128;
+    fn ft_balance_of(&self, account_id: AccountId) -> U128;
+}
+
+impl<T, Ft> FungibleTokenCoreDiverged<Ft> for T
+where
+    Ft: FungibleTokenCore,
+    T: Lens<Ft>,
+{
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+        self.with_mut(|inner: &mut Ft| Ft::ft_transfer(inner, receiver_id, amount, memo))
+    }
+
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        self.with_mut(|inner: &mut Ft| Ft::ft_transfer_call(inner, receiver_id, amount, memo, msg))
+    }
+
+    fn ft_total_supply(&self) -> U128 {
+        self.with_ref(|inner: &Ft| Ft::ft_total_supply(inner))
+    }
+
+    fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+        self.with_ref(|inner: &Ft| Ft::ft_balance_of(inner, account_id))
+    }
+}
+*/
+pub mod inheritance {
+    use super::{fungible_token_core, FungibleTokenCore};
+
+    use contract_interface::contract;
+    use contract_interface::{Inherited, Lens};
+    use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
+    use near_sdk::json_types::U128;
+    use near_sdk::AccountId;
+    use near_sdk::PromiseOrValue;
+
+    #[contract(mod = "impl_inheritance", trait = "fungible_token_core")]
+    impl<Outer, Ft> FungibleTokenCore for Inherited<Outer, Ft>
+    where
+        Inherited<Outer, Ft>: Lens<Ft>,
+        Ft: FungibleTokenCore + Default,
+        Outer: BorshSerialize + BorshDeserialize + Default,
+    {
+        fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+            self.with_mut(|inner: &mut Ft| Ft::ft_transfer(inner, receiver_id, amount, memo))
+        }
+
+        fn ft_transfer_call(
+            &mut self,
+            receiver_id: AccountId,
+            amount: U128,
+            memo: Option<String>,
+            msg: String,
+        ) -> PromiseOrValue<U128> {
+            self.with_mut(|inner: &mut Ft| {
+                Ft::ft_transfer_call(inner, receiver_id, amount, memo, msg)
+            })
+        }
+
+        fn ft_total_supply(&self) -> U128 {
+            self.with_ref(|inner: &Ft| Ft::ft_total_supply(inner))
+        }
+
+        fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+            self.with_ref(|inner: &Ft| Ft::ft_balance_of(inner, account_id))
+        }
+    }
+}
+
+// impl<T, Ft> FungibleTokenCore for T where T: FungibleTokenCoreDiverged<Ft> {}
+
+// impl<T, Ft> FungibleTokenCore for T where LensLink<T, Ft>: FungibleTokenCore {}
+
+*/
