@@ -16,20 +16,20 @@ pub struct Struct3A {
 }
 
 #[derive(Default)]
-pub struct L3AFt;
-impl Lens<Struct3A, FungibleToken> for L3AFt {
-    fn with_ref<V, F>(data: &Struct3A, f: F) -> V
+pub struct LensFrom3AToFt;
+impl Lens<FungibleToken> for Struct3A {
+    fn with_ref<V, F>(&self, f: F) -> V
     where
         F: FnOnce(&FungibleToken) -> V,
     {
-        f(&data.token)
+        f(&self.token)
     }
 
-    fn with_mut<V, F>(data: &mut Struct3A, f: F) -> V
+    fn with_mut<V, F>(&mut self, f: F) -> V
     where
         F: FnOnce(&mut FungibleToken) -> V,
     {
-        f(&mut data.token)
+        f(&mut self.token)
     }
 }
 
@@ -40,19 +40,19 @@ pub struct Struct3B {
 
 #[derive(Default)]
 pub struct L3B3A;
-impl Lens<Struct3B, Struct3A> for L3B3A {
-    fn with_ref<V, F>(data: &Struct3B, f: F) -> V
+impl Lens<Struct3A> for Struct3B {
+    fn with_ref<V, F>(&self, f: F) -> V
     where
         F: FnOnce(&Struct3A) -> V,
     {
-        f(&data.a)
+        f(&self.a)
     }
 
-    fn with_mut<V, F>(data: &mut Struct3B, f: F) -> V
+    fn with_mut<V, F>(&mut self, f: F) -> V
     where
         F: FnOnce(&mut Struct3A) -> V,
     {
-        f(&mut data.a)
+        f(&mut self.a)
     }
 }
 

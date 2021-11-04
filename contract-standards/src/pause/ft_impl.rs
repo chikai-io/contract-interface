@@ -9,7 +9,7 @@ use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 #[contract(mod = "pause_fungible_token", trait = "fungible_token_core")]
 impl<Ft> FungibleTokenCore for Pause<Ft>
 where
-    Ft: FungibleTokenCore<Final, Ft> + Default + BorshSerialize + BorshDeserialize,
+    Ft: FungibleTokenCore + Default + BorshSerialize + BorshDeserialize,
 {
     fn ft_transfer(
         &mut self,

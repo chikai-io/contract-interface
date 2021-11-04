@@ -1,6 +1,16 @@
 use std::marker::PhantomData;
 
-pub trait Lens<Outer, Inner> {
+pub trait Lens<Inner> {
+    fn with_ref<V, F>(&self, f: F) -> V
+    where
+        F: FnOnce(&Inner) -> V;
+
+    fn with_mut<V, F>(&mut self, f: F) -> V
+    where
+        F: FnOnce(&mut Inner) -> V;
+}
+
+pub trait Lens3<Outer, Inner> {
     fn with_ref<V, F>(data: &Outer, f: F) -> V
     where
         F: FnOnce(&Inner) -> V;
@@ -37,7 +47,7 @@ pub trait Lens2<T1, T2> {
 #[derive(Default)]
 pub struct Identity;
 
-impl<T> Lens<T, T> for Identity {
+impl<T> Lens3<T, T> for Identity {
     fn with_ref<V, F>(data: &T, f: F) -> V
     where
         F: FnOnce(&T) -> V,
@@ -69,10 +79,10 @@ pub struct Then<L1, L2, T2> {
     _t2: PhantomData<T2>,
 }
 
-impl<L1, L2, T1, T2, T3> Lens<T1, T3> for Then<L1, L2, T2>
+impl<L1, L2, T1, T2, T3> Lens3<T1, T3> for Then<L1, L2, T2>
 where
-    L1: Lens<T1, T2>,
-    L2: Lens<T2, T3>,
+    L1: Lens3<T1, T2>,
+    L2: Lens3<T2, T3>,
 {
     fn with_ref<V, F>(data: &T1, f: F) -> V
     where

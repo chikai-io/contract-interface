@@ -177,6 +177,47 @@ impl FungibleTokenCore for FungibleToken {
     }
 }
 
+use contract_interface::Lens;
+
+#[contract(
+    mod = "impl_inheritance",
+    trait = "crate::fungible_token::core::fungible_token_core"
+)]
+impl<T> FungibleTokenCore for T
+where
+    T: Lens<FungibleToken> + Default + BorshSerialize + BorshDeserialize,
+{
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+        T::with_mut(self, |inner: &mut FungibleToken| {
+            FungibleToken::ft_transfer(inner, receiver_id, amount, memo)
+        })
+    }
+
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        T::with_mut(self, |inner: &mut FungibleToken| {
+            FungibleToken::ft_transfer_call(inner, receiver_id, amount, memo, msg)
+        })
+    }
+
+    fn ft_total_supply(&self) -> U128 {
+        T::with_ref(self, |inner: &FungibleToken| {
+            FungibleToken::ft_total_supply(inner)
+        })
+    }
+
+    fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+        T::with_ref(self, |inner: &FungibleToken| {
+            FungibleToken::ft_balance_of(inner, account_id)
+        })
+    }
+}
+
 impl FungibleToken {
     /// Internal method that returns the amount of burned tokens in a corner case when the sender
     /// has deleted (unregistered) their account while the `ft_transfer_call` was still in flight.

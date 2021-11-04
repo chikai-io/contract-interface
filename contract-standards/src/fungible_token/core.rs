@@ -6,7 +6,7 @@ use near_sdk::AccountId;
 use near_sdk::PromiseOrValue;
 
 #[contract]
-pub trait FungibleTokenCore<L = Final, Ft = Self> {
+pub trait FungibleTokenCore {
     /// Transfers positive `amount` of tokens from the `env::predecessor_account_id` to `receiver_id`.
     /// Both accounts must be registered with the contract for transfer to succeed. (See [NEP-145](https://github.com/near/NEPs/discussions/145))
     /// This method must to be able to accept attached deposits, and must not panic on attached deposit.
@@ -61,39 +61,39 @@ use contract_interface::{Final, Identity, Lens};
 
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 
-#[contract(mod = "impl_inheritance", trait = "fungible_token_core")]
-impl<T, L, Ft> FungibleTokenCore<L, Ft> for T
-where
-    Ft: FungibleTokenCore<Final, Ft> + Default,
-    L: Lens<T, Ft> + Default,
-    T: Default + BorshSerialize + BorshDeserialize,
-{
-    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
-        L::with_mut(self, |inner: &mut Ft| {
-            Ft::ft_transfer(inner, receiver_id, amount, memo)
-        })
-    }
+// #[contract(mod = "impl_inheritance", trait = "fungible_token_core")]
+// impl<T, L, Ft> FungibleTokenCore for T
+// where
+//     Ft: FungibleTokenCore<Final, Ft> + Default,
+//     L: Lens<T, Ft> + Default,
+//     T: Default + BorshSerialize + BorshDeserialize,
+// {
+//     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+//         L::with_mut(self, |inner: &mut Ft| {
+//             Ft::ft_transfer(inner, receiver_id, amount, memo)
+//         })
+//     }
 
-    fn ft_transfer_call(
-        &mut self,
-        receiver_id: AccountId,
-        amount: U128,
-        memo: Option<String>,
-        msg: String,
-    ) -> PromiseOrValue<U128> {
-        L::with_mut(self, |inner: &mut Ft| {
-            Ft::ft_transfer_call(inner, receiver_id, amount, memo, msg)
-        })
-    }
+//     fn ft_transfer_call(
+//         &mut self,
+//         receiver_id: AccountId,
+//         amount: U128,
+//         memo: Option<String>,
+//         msg: String,
+//     ) -> PromiseOrValue<U128> {
+//         L::with_mut(self, |inner: &mut Ft| {
+//             Ft::ft_transfer_call(inner, receiver_id, amount, memo, msg)
+//         })
+//     }
 
-    fn ft_total_supply(&self) -> U128 {
-        L::with_ref(self, |inner: &Ft| Ft::ft_total_supply(inner))
-    }
+//     fn ft_total_supply(&self) -> U128 {
+//         L::with_ref(self, |inner: &Ft| Ft::ft_total_supply(inner))
+//     }
 
-    fn ft_balance_of(&self, account_id: AccountId) -> U128 {
-        L::with_ref(self, |inner: &Ft| Ft::ft_balance_of(inner, account_id))
-    }
-}
+//     fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+//         L::with_ref(self, |inner: &Ft| Ft::ft_balance_of(inner, account_id))
+//     }
+// }
 
 /*
 pub mod inheritance {
