@@ -57,6 +57,61 @@ pub trait FungibleTokenCore {
     fn ft_balance_of(&self, account_id: AccountId) -> U128;
 }
 
+// TODO: Self must become _LensTarget
+#[contract]
+pub trait FungibleTokenCoreLensed<_LensTarget, _Diverger>
+where
+    Self: Lens<_LensTarget>,
+    _LensTarget: FungibleTokenCore,
+{
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
+
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128>;
+
+    fn ft_total_supply(&self) -> U128;
+
+    fn ft_balance_of(&self, account_id: AccountId) -> U128;
+}
+
+// TODO: every Self must become LensTarget
+// #[contract(
+//     mod = "impl_fungible_token_core_lensed",
+//     trait = "fungible_token_core_lensed"
+// )]
+// impl<_State, _LensTarget, _Diverger> FungibleTokenCoreLensed<_LensTarget, _Diverger> for _State
+// where
+//     _LensTarget: FungibleTokenCore + Default,
+//     _State: Lens<_LensTarget> + Default + BorshSerialize + BorshDeserialize,
+//     _Diverger: Default,
+// {
+//     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+//         _LensTarget::ft_transfer(Lens::lens_mut(self), receiver_id, amount, memo)
+//     }
+
+//     fn ft_transfer_call(
+//         &mut self,
+//         receiver_id: AccountId,
+//         amount: U128,
+//         memo: Option<String>,
+//         msg: String,
+//     ) -> PromiseOrValue<U128> {
+//         _LensTarget::ft_transfer_call(Lens::lens_mut(self), receiver_id, amount, memo, msg)
+//     }
+
+//     fn ft_total_supply(&self) -> U128 {
+//         _LensTarget::ft_total_supply(Lens::lens(self))
+//     }
+
+//     fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+//         _LensTarget::ft_balance_of(Lens::lens(self), account_id)
+//     }
+// }
 use contract_interface::{Final, Identity, Lens};
 
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};

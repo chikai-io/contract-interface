@@ -1,12 +1,22 @@
 use super::{Struct3A, Struct3B};
 // use contract_interface::Inherited;
+use contract_interface as ci;
+use contract_standards as cs;
 use contract_standards::fungible_token::core_impl::FungibleToken;
 
 use contract_interface::{IThen, Then};
 
 pub fn client_example() {
     use contract_standards::fungible_token::FungibleTokenCore;
+
+    use cs::fungible_token::core::impl_fungible_token_core_lensed as lensed;
+
+    lensed::ft_transfer::Request::<Struct3A, FungibleToken>::contract("a".parse().unwrap());
+    let s3a = Struct3A::default();
+
     // use impl_inheritance::ft_transfer::Request;
+
+    /*
     use contract_standards::fungible_token::core_impl::impl_inheritance::ft_transfer::Request;
 
     type Ft = FungibleToken;
@@ -19,6 +29,7 @@ pub fn client_example() {
     s3a.token.ft_total_supply();
 
     s3a.ft_total_supply();
+    */
 
     /*
 

@@ -3,8 +3,10 @@
 pub mod api;
 pub mod client;
 
-use contract_interface::{contract, Lens, Lens2};
-use contract_standards::fungible_token::FungibleToken;
+use ci::{contract, Lens};
+use contract_interface::ci;
+use contract_standards::cs;
+use cs::fungible_token::FungibleToken;
 use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     PanicOnDefault,
@@ -15,21 +17,13 @@ pub struct Struct3A {
     token: FungibleToken,
 }
 
-#[derive(Default)]
-pub struct LensFrom3AToFt;
 impl Lens<FungibleToken> for Struct3A {
-    fn with_ref<V, F>(&self, f: F) -> V
-    where
-        F: FnOnce(&FungibleToken) -> V,
-    {
-        f(&self.token)
+    fn lens(&self) -> &FungibleToken {
+        &self.token
     }
 
-    fn with_mut<V, F>(&mut self, f: F) -> V
-    where
-        F: FnOnce(&mut FungibleToken) -> V,
-    {
-        f(&mut self.token)
+    fn lens_mut(&mut self) -> &mut FungibleToken {
+        &mut self.token
     }
 }
 
@@ -38,21 +32,13 @@ pub struct Struct3B {
     a: Struct3A,
 }
 
-#[derive(Default)]
-pub struct L3B3A;
 impl Lens<Struct3A> for Struct3B {
-    fn with_ref<V, F>(&self, f: F) -> V
-    where
-        F: FnOnce(&Struct3A) -> V,
-    {
-        f(&self.a)
+    fn lens(&self) -> &Struct3A {
+        &self.a
     }
 
-    fn with_mut<V, F>(&mut self, f: F) -> V
-    where
-        F: FnOnce(&mut Struct3A) -> V,
-    {
-        f(&mut self.a)
+    fn lens_mut(&mut self) -> &mut Struct3A {
+        &mut self.a
     }
 }
 

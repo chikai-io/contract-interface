@@ -1,6 +1,11 @@
 use std::marker::PhantomData;
 
 pub trait Lens<Inner> {
+    fn lens(&self) -> &Inner;
+    fn lens_mut(&mut self) -> &mut Inner;
+}
+
+pub trait LensGood<Inner> {
     fn with_ref<V, F>(&self, f: F) -> V
     where
         F: FnOnce(&Inner) -> V;

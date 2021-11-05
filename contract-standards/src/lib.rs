@@ -5,6 +5,12 @@ pub mod pause;
 #[macro_use]
 pub mod storage_management;
 
+// aliases
+pub use crate as cs;
+pub use fungible_token as ft;
+pub use macros as m;
+pub use storage_management as storage;
+
 /// Note:  
 /// Because of how `#[macro_use]` works, this module must be
 /// at root and must come _after_ the referenced macros

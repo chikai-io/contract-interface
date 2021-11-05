@@ -177,8 +177,81 @@ impl FungibleTokenCore for FungibleToken {
     }
 }
 
+// TODO: every Self must become LensTarget
+#[derive(Default)]
+pub struct _Diverger;
+
 use contract_interface::Lens;
 
+// #[contract(
+//     mod = "super::core::impl_fungible_token_core_lensed",
+//     trait = "super::core::fungible_token_core_lensed"
+// )]
+impl<_State, _LensTarget> super::core::FungibleTokenCoreLensed<_LensTarget, _Diverger> for _State
+where
+    _LensTarget: FungibleTokenCore + Default,
+    _State: Lens<_LensTarget> + Default + BorshSerialize + BorshDeserialize,
+    _Diverger: Default,
+{
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+        _LensTarget::ft_transfer(Lens::lens_mut(self), receiver_id, amount, memo)
+    }
+
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        _LensTarget::ft_transfer_call(Lens::lens_mut(self), receiver_id, amount, memo, msg)
+    }
+
+    fn ft_total_supply(&self) -> U128 {
+        _LensTarget::ft_total_supply(Lens::lens(self))
+    }
+
+    fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+        _LensTarget::ft_balance_of(Lens::lens(self), account_id)
+    }
+}
+
+/*
+use contract_interface::Lens;
+
+#[contract(
+    mod = "impl_inheritance",
+    trait = "crate::fungible_token::core::fungible_token_core"
+)]
+impl<T> FungibleTokenCore for T
+where
+    T: Lens<FungibleToken> + Default + BorshSerialize + BorshDeserialize,
+{
+    fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>) {
+        FungibleToken::ft_transfer(Lens::lens_mut(self), receiver_id, amount, memo)
+    }
+
+    fn ft_transfer_call(
+        &mut self,
+        receiver_id: AccountId,
+        amount: U128,
+        memo: Option<String>,
+        msg: String,
+    ) -> PromiseOrValue<U128> {
+        FungibleToken::ft_transfer_call(Lens::lens_mut(self), receiver_id, amount, memo, msg)
+    }
+
+    fn ft_total_supply(&self) -> U128 {
+        FungibleToken::ft_total_supply(Lens::lens(self))
+    }
+
+    fn ft_balance_of(&self, account_id: AccountId) -> U128 {
+        FungibleToken::ft_balance_of(Lens::lens(self), account_id)
+    }
+}
+*/
+
+/*
 #[contract(
     mod = "impl_inheritance",
     trait = "crate::fungible_token::core::fungible_token_core"
@@ -217,6 +290,7 @@ where
         })
     }
 }
+*/
 
 impl FungibleToken {
     /// Internal method that returns the amount of burned tokens in a corner case when the sender
