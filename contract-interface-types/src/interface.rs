@@ -1,3 +1,7 @@
+use near_sdk::{
+    borsh::{BorshDeserialize, BorshSerialize},
+    env,
+};
 pub use request::Request;
 
 ///
@@ -5,47 +9,53 @@ pub use request::Request;
 /// See [RFC 1023](https://github.com/rust-lang/rfcs/blob/master/text/1023-rebalancing-coherence.md)
 /// for more information.
 pub trait Serve<ArgsDeserialization, ReturnSerialization, Diverged = ()> {
-    type State: near_sdk::borsh::BorshDeserialize + near_sdk::borsh::BorshSerialize + Default;
+    type State: BorshDeserialize + BorshSerialize + Default;
     type Args: crate::FromBytes<ArgsDeserialization>;
     type Return: crate::ToBytes<ReturnSerialization>;
 
     fn setup_panic_hook() {
-        near_sdk::env::setup_panic_hook();
+        env::setup_panic_hook();
     }
 
     fn panic_on_already_existing_state() {
-        if near_sdk::env::state_exists() {
-            near_sdk::env::panic_str("The contract has already been initialized");
+        if env::state_exists() {
+            env::panic_str("The contract has already been initialized");
         }
     }
 
     fn panic_on_deposit() {
-        if near_sdk::env::attached_deposit() != 0 {
-            near_sdk::env::panic_str("Method doesn\'t accept deposit");
+        if env::attached_deposit() != 0 {
+            env::panic_str("Method doesn\'t accept deposit");
         }
     }
 
     fn panic_on_non_private() {
-        if near_sdk::env::current_account_id() != near_sdk::env::predecessor_account_id() {
-            near_sdk::env::panic_str("Method is private");
+        if env::current_account_id() != env::predecessor_account_id() {
+            env::panic_str("Method is private");
         }
     }
 
     fn deserialize_args_from_input() -> Self::Args {
         use crate::FromBytes;
         // TODO: test with method without arguments
-        let bytes = near_sdk::env::input().expect("Expected input since method has arguments.");
+        let bytes = env::input().expect("Expected input since method has arguments.");
         Self::Args::from_bytes(bytes.as_ref()).expect("Failed to deserialize the argument values")
     }
 
-    fn state_read_or_default() -> Self::State {
-        near_sdk::env::state_read().unwrap_or_default()
+    fn state_read_or_default<OuterType>() -> OuterType
+    where
+        OuterType: Default + BorshDeserialize,
+    {
+        env::state_read().unwrap_or_default()
     }
 
-    fn state_read_or_panic() -> Self::State {
-        match near_sdk::env::state_read() {
+    fn state_read_or_panic<OuterType>() -> OuterType
+    where
+        OuterType: BorshDeserialize,
+    {
+        match env::state_read() {
             Some(state) => state,
-            None => near_sdk::env::panic_str("State must be first initialized"),
+            None => env::panic_str("State must be first initialized"),
         }
     }
 
@@ -59,11 +69,14 @@ pub trait Serve<ArgsDeserialization, ReturnSerialization, Diverged = ()> {
         use crate::ToBytes;
         let result = <Self::Return as ToBytes<ReturnSerialization>>::to_bytes(&result)
             .expect("Failed to serialize the return value.");
-        near_sdk::env::value_return(&result);
+        env::value_return(&result);
     }
 
-    fn state_write(contract: &Self::State) {
-        near_sdk::env::state_write(contract);
+    fn state_write<OuterType>(contract: &OuterType)
+    where
+        OuterType: BorshSerialize,
+    {
+        env::state_write(contract);
     }
 }
 
@@ -72,8 +85,18 @@ pub trait ServeRefMut<ArgsDeserialization, ReturnSerialization, Diverged = ()>:
 {
     type Method: FnOnce(&mut Self::State, Self::Args) -> Option<Self::Return>;
 
-    fn serve(method: Self::Method);
-    fn extern_serve();
+    fn serve<OuterType>(
+        //
+        access: fn(&mut OuterType) -> &mut Self::State,
+        method: Self::Method,
+    ) where
+        OuterType: BorshDeserialize + BorshSerialize;
+    fn extern_serve<OuterType>(access: fn(&mut OuterType) -> &mut Self::State)
+    where
+        OuterType: BorshDeserialize + BorshSerialize;
+    fn extern_serve_identity() {
+        Self::extern_serve::<Self::State>(|identity| identity)
+    }
 }
 
 pub trait ServeRef<ArgsDeserialization, ReturnSerialization, Diverged = ()>:
@@ -81,8 +104,18 @@ pub trait ServeRef<ArgsDeserialization, ReturnSerialization, Diverged = ()>:
 {
     type Method: FnOnce(&Self::State, Self::Args) -> Option<Self::Return>;
 
-    fn serve(method: Self::Method);
-    fn extern_serve();
+    fn serve<OuterType>(
+        //
+        access: fn(&OuterType) -> &Self::State,
+        method: Self::Method,
+    ) where
+        OuterType: BorshDeserialize;
+    fn extern_serve<OuterType>(_access: fn(&OuterType) -> &Self::State)
+    where
+        OuterType: BorshDeserialize;
+    fn extern_serve_identity() {
+        Self::extern_serve::<Self::State>(|identity| identity)
+    }
 }
 
 pub trait ServeOwned<ArgsDeserialization, Diverged = ()>:
@@ -90,8 +123,22 @@ pub trait ServeOwned<ArgsDeserialization, Diverged = ()>:
 {
     type Method: FnOnce(Self::State, Self::Args) -> Self::State;
 
-    fn serve(method: Self::Method);
-    fn extern_serve();
+    fn serve<OuterType>(
+        //
+        access: fn(&mut OuterType) -> &mut Self::State,
+        method: Self::Method,
+    ) where
+        OuterType: BorshDeserialize + BorshSerialize;
+    // TODO: since the fn consumes OuterType, it will need to be cloned
+    // for OuterType to still be replaced.
+    //
+    // hope for the best (that the compiler will optimize the clone away)
+    fn extern_serve<OuterType>(access: fn(&mut OuterType) -> &mut Self::State)
+    where
+        OuterType: BorshDeserialize + BorshSerialize;
+    fn extern_serve_identity() {
+        Self::extern_serve::<Self::State>(|identity| identity)
+    }
 }
 
 pub trait ServeStateless<ArgsDeserialization, ReturnSerialization, Diverged = ()>:
@@ -101,6 +148,9 @@ pub trait ServeStateless<ArgsDeserialization, ReturnSerialization, Diverged = ()
 
     fn serve(method: Self::Method);
     fn extern_serve();
+    fn extern_serve_identity() {
+        Self::extern_serve()
+    }
 }
 
 pub trait ServeStatelessInit<ArgsDeserialization, Diverged = ()>:
@@ -108,8 +158,17 @@ pub trait ServeStatelessInit<ArgsDeserialization, Diverged = ()>:
 {
     type Method: FnOnce(Self::Args) -> Self::State;
 
-    fn serve(method: Self::Method);
-    fn extern_serve();
+    fn serve<OuterType>(method: Self::Method)
+    where
+        OuterType: BorshSerialize,
+        Self::State: Into<OuterType>;
+    fn extern_serve<OuterType>()
+    where
+        OuterType: BorshSerialize,
+        Self::State: Into<OuterType>;
+    fn extern_serve_identity() {
+        Self::extern_serve::<Self::State>()
+    }
 }
 
 pub mod request {

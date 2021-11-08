@@ -9,3 +9,6 @@ pub use contract_interface_types::{
     borsh, json, request, Borsh, FromBytes, Json, Request, Serve, ServeOwned, ServeRef,
     ServeRefMut, ServeStateless, ServeStatelessInit, ToBytes,
 };
+
+// aliases
+pub use crate as ci;

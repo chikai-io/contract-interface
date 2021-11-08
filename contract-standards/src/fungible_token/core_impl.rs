@@ -120,7 +120,7 @@ impl FungibleToken {
 }
 
 #[contract(
-    mod = "fungible_token",
+    mod = "impl_fungible_token",
     trait = "crate::fungible_token::core::fungible_token_core"
 )]
 impl FungibleTokenCore for FungibleToken {

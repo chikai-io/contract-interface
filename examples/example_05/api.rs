@@ -6,12 +6,4 @@
 //! See also [`super::api_manual`] for an example of how to
 //! manually create those functions, without using any macros.
 
-use contract_standards::cs;
-
-// this uses `state_access` to be able to access the FungibleToken
-// from within a `Struct3`
-cs::extern_impl_fungible_token!(
-    stored_type = super::Struct3,
-    state_access = state.token,
-    impl_mod = cs::ft::core_impl::impl_fungible_token
-);
+crate::macros::extern_impl_trait_5!(stored_type = super::Struct5, impl_mod = super::impl_trait_5);

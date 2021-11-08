@@ -6,4 +6,4 @@
 //! See also [`super::api_manual`] for an example of how to
 //! manually create those functions, without using any macros.
 
-crate::macros::extern_impl_trait_1!(impl_mod = super::impl_trait_1);
+crate::macros::extern_impl_trait_1!(stored_type = super::Struct1, impl_mod = super::impl_trait_1);

@@ -1,4 +1,4 @@
-//! An example showing methods that use various kinds of `self`.
+//! A dummy example showing methods that use various kinds of `self`.
 
 #![allow(unused_variables)]
 

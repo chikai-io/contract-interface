@@ -5,6 +5,7 @@
 //! functions out of a generic trait impls.
 
 pub mod api;
+pub mod api_manual;
 
 use contract_interface::contract;
 use near_sdk::{

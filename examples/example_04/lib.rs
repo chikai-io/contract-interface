@@ -1,4 +1,4 @@
-//! An example showing methods that use various kinds of argument types
+//! A dummy example showing methods that use various kinds of argument types
 //! such as `&T` and such.
 
 #![allow(unused_parens)]
@@ -9,6 +9,10 @@ use near_sdk::{
     borsh::{self, BorshDeserialize, BorshSerialize},
     PanicOnDefault,
 };
+
+#[macro_use]
+pub mod api;
+pub mod api_manual;
 
 /// (Original Struct4 documentation)
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault, Clone)]

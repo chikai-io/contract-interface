@@ -19,7 +19,8 @@ impl ItemImplInfo {
 
         let mut methods = Vec::new();
         let mut macro_method_params = Vec::new();
-        let mut macro_methods = Vec::new();
+        let mut macro_methods_direct_state = Vec::new();
+        let mut macro_methods_field_state = Vec::new();
 
         for (original_method_ident, method) in &self.items.methods {
             result.extend(method.method_wrapper(original_method_ident, self)?);
@@ -84,7 +85,53 @@ impl ItemImplInfo {
 
             let receiver_kind = &method.inputs.receiver_kind.quote_trait_name();
 
-            let macro_call = quote! {
+            let generic_idents = quote! {
+                // #(#impl_generic_lifetime_idents,)*
+                // #($#method_generic_lifetime_method_idents,)*
+                #($#method_generic_type_method_idents,)*
+                #($#impl_generic_type_idents,)*
+                #($#impl_generic_const_idents,)*
+                #($#method_generic_const_method_idents,)*
+            };
+
+            use crate::core_impl::info_extractor::inputs::ReceiverKind;
+            let direct_state_access = match method.inputs.receiver_kind {
+                ReceiverKind::RefMut => quote! {
+                    |state: &mut $stored_type| state
+                },
+                ReceiverKind::Ref => quote! {
+                    |state: &$stored_type| state
+                },
+                ReceiverKind::Owned => quote! {
+                    |state: &mut $stored_type| state
+                },
+                ReceiverKind::Stateless => quote!(),
+                ReceiverKind::StatelessInit => quote!(),
+            };
+
+            let field_state_access = match method.inputs.receiver_kind {
+                ReceiverKind::RefMut => quote! {
+                    |state: &mut $stored_type| &mut state$(.$state_access)*
+                },
+                ReceiverKind::Ref => quote! {
+                    |state: &$stored_type| & state$(.$state_access)*
+                },
+                ReceiverKind::Owned => quote! {
+                    |state: &mut $stored_type| &mut state$(.$state_access)*
+                },
+                ReceiverKind::Stateless => quote!(),
+                ReceiverKind::StatelessInit => quote!(),
+            };
+
+            let extern_serve_type = match method.inputs.receiver_kind {
+                ReceiverKind::RefMut => quote!($stored_type),
+                ReceiverKind::Ref => quote! ($stored_type),
+                ReceiverKind::Owned => quote! ($stored_type),
+                ReceiverKind::Stateless => quote!(),
+                ReceiverKind::StatelessInit => quote! ($stored_type),
+            };
+
+            let fn_template_direct_state = quote! {
                 // TODO: consider adding arbitrary feature flag
                 // TODO: add #[cfg(target_arch = "wasm32")]
                 #[no_mangle]
@@ -92,16 +139,29 @@ impl ItemImplInfo {
                     use #internal_interface as _interface;
                     use #receiver_kind;
                     $($impl_mod::)*#original_method_ident::Serve::<
-                        // #(#impl_generic_lifetime_idents,)*
-                        // #($#method_generic_lifetime_method_idents,)*
-                        #($#method_generic_type_method_idents,)*
-                        #($#impl_generic_type_idents,)*
-                        #($#impl_generic_const_idents,)*
-                        #($#method_generic_const_method_idents,)*
-                    >::extern_serve();
+                        #generic_idents
+                    >::extern_serve::<#extern_serve_type>(
+                        #direct_state_access
+                    );
                 }
             };
-            macro_methods.push(macro_call);
+            let fn_template_field_state = quote! {
+                // TODO: consider adding arbitrary feature flag
+                // TODO: add #[cfg(target_arch = "wasm32")]
+                #[no_mangle]
+                pub extern "C" fn #original_method_ident() {
+                    use #internal_interface as _interface;
+                    use #receiver_kind;
+                    $($impl_mod::)*#original_method_ident::Serve::<
+                        #generic_idents
+                    >::extern_serve::<#extern_serve_type>(
+                        #field_state_access
+                    );
+                }
+            };
+
+            macro_methods_direct_state.push(fn_template_direct_state);
+            macro_methods_field_state.push(fn_template_field_state);
             methods.push(original_method_ident.clone());
         }
 
@@ -157,13 +217,25 @@ impl ItemImplInfo {
                     #[macro_export]
                     macro_rules! #struct_macro_name {
                         (
-                            impl_mod = $($impl_mod:ident)::*
+                            stored_type = $stored_type:path
+                            , state_access = state.$($state_access:ident).*
+                            , impl_mod = $($impl_mod:ident)::*
                             // #(, <#impl_generic_lifetime_idents> = $#impl_generic_lifetime_idents:path)*
                             #(, <#impl_generic_type_idents> = $#impl_generic_type_idents:path)*
                             #(, <#impl_generic_const_idents> = $#impl_generic_const_idents:expr)*
                             #(, #macro_method_params)*
                         ) => {
-                            #(#macro_methods)*
+                            #(#macro_methods_field_state)*
+                        };
+                        (
+                            stored_type = $stored_type:path
+                            , impl_mod = $($impl_mod:ident)::*
+                            // #(, <#impl_generic_lifetime_idents> = $#impl_generic_lifetime_idents:path)*
+                            #(, <#impl_generic_type_idents> = $#impl_generic_type_idents:path)*
+                            #(, <#impl_generic_const_idents> = $#impl_generic_const_idents:expr)*
+                            #(, #macro_method_params)*
+                        ) => {
+                            #(#macro_methods_direct_state)*
                         };
                     }
                 }

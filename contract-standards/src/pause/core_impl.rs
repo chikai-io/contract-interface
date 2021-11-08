@@ -24,7 +24,7 @@ impl<Ft> Pause<Ft> {
     }
 }
 
-#[contract(mod = "pause", trait = "pause_core")]
+#[contract(mod = "impl_pause", trait = "pause_core")]
 impl<T> crate::pause::PauseCore for Pause<T>
 where
     T: Default + BorshSerialize + BorshDeserialize,

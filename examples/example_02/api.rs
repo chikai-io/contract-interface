@@ -7,15 +7,14 @@
 //! known at compile time, so the generated macro takes this is account
 //! and require those definitions.
 
-// it first requires an `impl_mod` to base itself into, where the
-// state and potentially other generics might get defined.
-//
-// then it requires the trait generics to be defined,
+// besides the `stored_type` and `impl_mod` paths,
+// the macro also requires defining every generic types,
 // which are the <> at the beggining of the line for each parameter,
 //
-// then it requires each method generics to be defined,
+// and similarly it also requires each method generics to be defined,
 // which are the method name followed by an <> for each parameter
 crate::macros::extern_impl_trait_2!(
+    stored_type = super::Struct2,
     impl_mod = super::impl_trait_2,
     <TraitType> = u8,
     <TRAIT_CONST> = true,

@@ -11,6 +11,8 @@ impl ImplItemMethodInfo {
         original_method_ident: &syn::Ident,
         impl_info: &ItemImplInfo,
     ) -> error::Result<TokenStream2> {
+        use inputs::ReceiverKind;
+
         let internal_interface = crate::crate_name("contract-interface")?;
         let near_sdk = crate::crate_name("near-sdk")?;
 
@@ -274,7 +276,6 @@ impl ImplItemMethodInfo {
                             _phantom: Default::default()
                         };
                     };
-                    use inputs::ReceiverKind;
                     return_value =
                         if matches!(recv_kind, ReceiverKind::Owned | ReceiverKind::StatelessInit) {
                             quote! {
@@ -290,9 +291,30 @@ impl ImplItemMethodInfo {
                 }
             };
 
-            let serve_fn = {
-                use inputs::ReceiverKind;
+            let outer_type_where_clause = match recv_kind {
+                ReceiverKind::RefMut => {
+                    quote! {
+                        where
+                            OuterType: _near_sdk::borsh::BorshDeserialize + _near_sdk::borsh::BorshSerialize
+                    }
+                }
+                ReceiverKind::Ref => quote! {
+                    where
+                        OuterType: _near_sdk::borsh::BorshDeserialize
+                },
+                ReceiverKind::Owned => quote! {
+                    where
+                        OuterType: _near_sdk::borsh::BorshDeserialize + _near_sdk::borsh::BorshSerialize
+                },
+                ReceiverKind::Stateless => quote!(),
+                ReceiverKind::StatelessInit => quote! {
+                    where
+                        OuterType: _near_sdk::borsh::BorshSerialize,
+                        Self::State: Into<OuterType>
+                },
+            };
 
+            let serve_fn = {
                 // init_ignore_state is false if it's set to false or if it's missing
                 let init_ignore_state = self
                     .attrs
@@ -361,24 +383,42 @@ impl ImplItemMethodInfo {
                 // stil not even be stored.
                 let state_load = match recv_kind {
                     ReceiverKind::RefMut => {
-                        quote!(let mut contract: Self::State = Self::state_read_or_panic();)
+                        quote! {
+                            let mut contract: OuterType = Self::state_read_or_panic::<OuterType>();
+                            let state: &mut Self::State = access(&mut contract);
+                        }
                     }
                     ReceiverKind::Ref => {
                         if self.attrs.allow_temporary_state {
-                            quote!(let mut contract: Self::State = Self::state_read_or_default();)
+                            quote! {
+                                let mut contract: OuterType = Self::state_read_or_default::<OuterType>();
+                                let mut state: &Self::State = access(&contract);
+                            }
                         } else {
-                            quote!(let mut contract: Self::State = Self::state_read_or_panic();)
+                            quote! {
+                                let mut contract: OuterType = Self::state_read_or_panic::<OuterType>();
+                                let mut state: &Self::State = access(&contract);
+                            }
                         }
                     }
                     ReceiverKind::Owned => {
-                        quote!(let mut contract: Self::State = Self::state_read_or_panic();)
+                        quote! {
+                            let mut contract: OuterType = Self::state_read_or_panic();
+                            // TODO:
+                            // hope that the compiler will optmize the clone away
+                            let mut state: Self::State = access(&mut contract).clone();
+                        }
                     }
-                    ReceiverKind::Stateless => quote!(let _contract = ();),
+                    ReceiverKind::Stateless => quote! {
+                        let _contract = ();
+                        let _state = ();
+                    },
 
                     // just declare the state and set it's type,
                     // it will be initialized from the method's result later on
                     ReceiverKind::StatelessInit => quote!(
-                        let contract: Self::State;
+                        let contract: OuterType;
+                        let state: Self::State;
                     ),
                 };
 
@@ -386,9 +426,9 @@ impl ImplItemMethodInfo {
                 let method_params = match recv_kind {
                     ReceiverKind::Stateless => quote!(args),
                     ReceiverKind::StatelessInit => quote!(args),
-                    ReceiverKind::RefMut => quote!(&mut contract, args),
-                    ReceiverKind::Ref => quote!(&contract, args),
-                    ReceiverKind::Owned => quote!(contract, args),
+                    ReceiverKind::RefMut => quote!(state, args),
+                    ReceiverKind::Ref => quote!(state, args),
+                    ReceiverKind::Owned => quote!(state, args),
                 };
 
                 let result_serialize =
@@ -404,7 +444,9 @@ impl ImplItemMethodInfo {
                 let state_write = match recv_kind {
                     // ref mut self always (over)writes state
                     ReceiverKind::RefMut => {
-                        quote!(Self::state_write(&contract);)
+                        quote! {
+                            Self::state_write::<OuterType>(&contract);
+                        }
                     }
 
                     // ref self never (over)writes state
@@ -413,8 +455,8 @@ impl ImplItemMethodInfo {
                     // owned always overwrites state, but will give compile-error
                     // if returned value is not a state
                     ReceiverKind::Owned => quote! {
-                        contract = result;
-                        Self::state_write(&contract);
+                        *access(&mut contract) = result;
+                        Self::state_write::<OuterType>(&contract);
                     },
 
                     // stateless methods never (over)writes state
@@ -423,12 +465,48 @@ impl ImplItemMethodInfo {
                     // init always overwrites state, but will give compile-error
                     // if returned value is not a state
                     ReceiverKind::StatelessInit => quote! {
-                        contract = result;
-                        Self::state_write(&contract);
+                        contract = result.into();
+                        Self::state_write::<OuterType>(&contract);
                     },
                 };
+
+                let fn_args = match recv_kind {
+                    ReceiverKind::RefMut => {
+                        quote! {
+                            access: fn(&mut OuterType) -> &mut Self::State,
+                            method: Self::Method
+                        }
+                    }
+                    ReceiverKind::Ref => quote! {
+                        access: fn(&OuterType) -> &Self::State,
+                        method: Self::Method
+                    },
+                    ReceiverKind::Owned => quote! {
+                        access: fn(&mut OuterType) -> &mut Self::State,
+                        method: Self::Method
+                    },
+                    ReceiverKind::Stateless => quote! {
+                        method: Self::Method
+                    },
+                    ReceiverKind::StatelessInit => quote! {
+                        method: Self::Method
+                    },
+                };
+
+                let serve_generics = match recv_kind {
+                    ReceiverKind::RefMut => quote!(OuterType),
+                    ReceiverKind::Ref => quote!(OuterType),
+                    ReceiverKind::Owned => quote!(OuterType),
+                    ReceiverKind::Stateless => quote!(),
+                    ReceiverKind::StatelessInit => quote!(OuterType),
+                };
+
                 quote! {
-                    fn serve(method: Self::Method) {
+                    fn serve<#serve_generics>(
+                        #fn_args
+                    )
+                    #outer_type_where_clause
+                    {
                         use _interface::Serve as _;
                         Self::setup_panic_hook();
                         #init_check
@@ -448,7 +526,11 @@ impl ImplItemMethodInfo {
             let receiver_kind_state = receiver_kind.quote_self_argument();
             let receiver_kind_extern_serve = match receiver_kind {
                 inputs::ReceiverKind::RefMut => quote! {
-                    fn extern_serve() {
+                    fn extern_serve<OuterType>(
+                        access: fn(&mut OuterType) -> &mut Self::State
+                    )
+                    #outer_type_where_clause
+                    {
                         use _interface::ServeRefMut;
                         let method_wrapper = |state: &mut Self::State, mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
@@ -456,11 +538,15 @@ impl ImplItemMethodInfo {
                             > (state, #(#args_pats),*);
                             #return_value
                         };
-                        Self::serve(method_wrapper);
+                        Self::serve::<OuterType>(access, method_wrapper);
                     }
                 },
                 inputs::ReceiverKind::Ref => quote! {
-                    fn extern_serve() {
+                    fn extern_serve<OuterType>(
+                        access: fn(&OuterType) -> &Self::State
+                    )
+                    #outer_type_where_clause
+                    {
                         use _interface::ServeRef;
                         let method_wrapper = |state: &Self::State, mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
@@ -468,11 +554,15 @@ impl ImplItemMethodInfo {
                             > (state, #(#args_pats),*);
                             #return_value
                         };
-                        Self::serve(method_wrapper);
+                        Self::serve::<OuterType>(access, method_wrapper);
                     }
                 },
                 inputs::ReceiverKind::Owned => quote! {
-                    fn extern_serve() {
+                    fn extern_serve<OuterType>(
+                        access: fn(&mut OuterType) -> &mut Self::State
+                    )
+                    #outer_type_where_clause
+                    {
                         use _interface::ServeOwned;
                         let method_wrapper = |state: Self::State, mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
@@ -480,11 +570,12 @@ impl ImplItemMethodInfo {
                             > (state, #(#args_pats),*);
                             #return_value
                         };
-                        Self::serve(method_wrapper);
+                        Self::serve::<OuterType>(access, method_wrapper);
                     }
                 },
                 inputs::ReceiverKind::Stateless => quote! {
-                    fn extern_serve() {
+                    fn extern_serve()
+                    {
                         use _interface::ServeStateless;
                         let method_wrapper = |mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
@@ -496,7 +587,9 @@ impl ImplItemMethodInfo {
                     }
                 },
                 inputs::ReceiverKind::StatelessInit => quote! {
-                    fn extern_serve() {
+                    fn extern_serve<OuterType>()
+                    #outer_type_where_clause
+                    {
                         use _interface::ServeStatelessInit;
                         let method_wrapper = |mut args: Self::Args| {
                             let #return_ident: #return_type = <Self::State as #trait_path>::#original_method_ident::< //
@@ -504,7 +597,7 @@ impl ImplItemMethodInfo {
                             > (#(#args_pats),*);
                             #return_value
                         };
-                        Self::serve(method_wrapper);
+                        Self::serve::<OuterType>(method_wrapper);
                     }
                 },
             };

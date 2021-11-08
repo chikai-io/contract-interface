@@ -14,7 +14,7 @@ near-sdk = "4.0.0-pre.2"
 
 [dev-dependencies]
 near-sdk = "4.0.0-pre.2"
-near-contract-standards = "4.0.0-pre.2"
+contract-standards = {path = "contract-standards"}
 
 [workspace]
 members = [
@@ -31,6 +31,11 @@ crate-type = ["cdylib"]
 [[example]]
 name = "example_02"
 path = "examples/example_02/lib.rs"
+crate-type = ["cdylib"]
+
+[[example]]
+name = "example_03"
+path = "examples/example_03/lib.rs"
 crate-type = ["cdylib"]
 
 [[example]]

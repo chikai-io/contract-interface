@@ -3,7 +3,7 @@ use crate::pause::Pause;
 use contract_interface::contract;
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 
-#[contract(mod = "pause_fungible_token", trait = "fungible_token_core")]
+#[contract(mod = "impl_pause_fungible_token", trait = "fungible_token_core")]
 impl<Ft> FungibleTokenCore for Pause<Ft>
 where
     Ft: FungibleTokenCore + Default + BorshSerialize + BorshDeserialize,
