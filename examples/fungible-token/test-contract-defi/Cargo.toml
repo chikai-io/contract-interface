@@ -8,6 +8,10 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-near-sdk = { path = "../../../near-sdk" }
-near-contract-standards = { path = "../../../near-contract-standards" }
+near-sdk = "4.0.0-pre.2"
+contract-standards = {path = "../../../contract-standards"}
+contract-interface = {path = "../../../"}
 
+[features]
+default = ["serve"]
+serve = []

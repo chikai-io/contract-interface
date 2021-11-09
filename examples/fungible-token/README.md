@@ -1,10 +1,11 @@
-Fungible Token (FT)
-===================
+# Example: Fungible Token (FT)
 
-Example implementation of a [Fungible Token] contract which uses [near-contract-standards] and [simulation] tests.
+_This is a fork of [fungible-token-example](https://github.com/near/near-sdk-rs/tree/master/examples/fungible-token) that adapts it to this library's `#[contract]` attribute._
+
+Example implementation of a [Fungible Token] contract which uses [contract-standards] and [simulation] tests.
 
   [Fungible Token]: https://nomicon.io/Standards/Tokens/FungibleTokenCore.html
-  [near-contract-standards]: https://github.com/near/near-sdk-rs/tree/master/near-contract-standards
+  [contract-standards]: ../../contract-standards/
   [simulation]: https://github.com/near/near-sdk-rs/tree/master/near-sdk-sim
 
 NOTES:
@@ -21,18 +22,20 @@ To build run:
 ## Testing
 To test run:
 ```bash
-cargo test --package fungible-token -- --nocapture
+cargo test --all
+cargo run --example heavy
 ```
+
+## Documentation
+To see the doc:
+```bash
+cargo doc --no-deps --open -p contract-interface -p contract-standards -p fungible-token -p defi
+```
+Then on the bottom-left you can choose the package.
 
 ## Changelog
 
 ### `1.0.0`
 
-- Switched form using [NEP-21](https://github.com/near/NEPs/pull/21) to [NEP-141](https://github.com/near/NEPs/issues/141).
-
-### `0.3.0`
-
-#### Breaking storage change
-
-- Switching `UnorderedMap` to `LookupMap`. It makes it cheaper and faster due to decreased storage access.
+- Switched from using [NEP-21](https://github.com/near/NEPs/pull/21) to [NEP-141](https://github.com/near/NEPs/issues/141).
 

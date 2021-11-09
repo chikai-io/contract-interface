@@ -17,7 +17,12 @@ const DEFI_ID: &str = "defi";
 
 fn init(
     initial_balance: u128,
-) -> (UserAccount, ContractAccount<FtContract>, ContractAccount<DeFiContract>, UserAccount) {
+) -> (
+    UserAccount,
+    ContractAccount<FtContract>,
+    ContractAccount<DeFiContract>,
+    UserAccount,
+) {
     let root = init_simulator(None);
     // uses default values for deposit and gas
     let ft = deploy!(
@@ -36,7 +41,10 @@ fn init(
             initial_balance.into()
         )
     );
-    let alice = root.create_user(AccountId::new_unchecked("alice".to_string()), to_yocto("100"));
+    let alice = root.create_user(
+        AccountId::new_unchecked("alice".to_string()),
+        to_yocto("100"),
+    );
     register_user(&ft, &alice);
 
     let id = AccountId::new_unchecked(FT_ID.to_string());
@@ -71,8 +79,22 @@ fn transfer(
     amount: u128,
     contract: &ContractAccount<FtContract>,
 ) {
-    call!(from, contract.ft_transfer(to, amount.into(), None), deposit = TRANSFER_DEPOSIT)
-        .assert_success()
+    from.function_call(
+        contract.contract.ft_transfer(to, amount.into(), None),
+        near_sdk_sim::DEFAULT_GAS,
+        TRANSFER_DEPOSIT,
+    )
+    .assert_success()
+
+    // call!(
+    //     // $signer
+    //     from,
+    //     // $contract .$method     ($args)
+    //     contract.ft_transfer(to, amount.into(), None),
+    //     //        $gas_or_deposit
+    //     deposit = TRANSFER_DEPOSIT
+    // )
+    // .assert_success()
 }
 
 fn main() {
@@ -84,13 +106,28 @@ fn main() {
     let transfer_amount = to_yocto("1");
     let initial_balance = to_yocto("10000000000");
     let (master_account, contract, _defi, alice) = init(initial_balance);
-    transfer(&master_account, alice.account_id(), transfer_amount, &contract);
+    transfer(
+        &master_account,
+        alice.account_id(),
+        transfer_amount,
+        &contract,
+    );
     let now = std::time::Instant::now();
     for i in 0..iterations {
         if i % 2 == 0 {
-            transfer(&master_account, alice.account_id(), transfer_amount, &contract);
+            transfer(
+                &master_account,
+                alice.account_id(),
+                transfer_amount,
+                &contract,
+            );
         } else {
-            transfer(&alice, master_account.account_id(), transfer_amount, &contract);
+            transfer(
+                &alice,
+                master_account.account_id(),
+                transfer_amount,
+                &contract,
+            );
         }
     }
     let elapsed = now.elapsed().as_millis();

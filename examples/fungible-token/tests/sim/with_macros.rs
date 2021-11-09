@@ -1,3 +1,5 @@
+#![allow(clippy::ref_in_deref)]
+
 use near_sdk::json_types::U128;
 use near_sdk::serde_json::json;
 use near_sdk_sim::{call, to_yocto, transaction::ExecutionStatus, view, DEFAULT_GAS};
@@ -119,7 +121,11 @@ fn simulate_transfer_call_with_burned_amount() {
 
     assert_eq!(
         outcome.logs()[1],
-        format!("Closed @{} with {}", root.account_id(), initial_balance - transfer_amount)
+        format!(
+            "Closed @{} with {}",
+            root.account_id(),
+            initial_balance - transfer_amount
+        )
     );
 
     let result: bool = outcome.unwrap_json();
@@ -127,7 +133,10 @@ fn simulate_transfer_call_with_burned_amount() {
 
     let callback_outcome = outcome.get_receipt_results().remove(1).unwrap();
 
-    assert_eq!(callback_outcome.logs()[0], "The account of the sender was deleted");
+    assert_eq!(
+        callback_outcome.logs()[0],
+        "The account of the sender was deleted"
+    );
     assert_eq!(
         callback_outcome.logs()[1],
         format!("Account @{} burned {}", root.account_id(), 10)
@@ -221,7 +230,10 @@ fn simulate_transfer_call_with_promise_and_refund() {
 
     let root_balance: U128 = view!(ft.ft_balance_of(root.account_id())).unwrap_json();
     let defi_balance: U128 = view!(ft.ft_balance_of(defi.account_id())).unwrap_json();
-    assert_eq!(initial_balance - transfer_amount + refund_amount, root_balance.0);
+    assert_eq!(
+        initial_balance - transfer_amount + refund_amount,
+        root_balance.0
+    );
     assert_eq!(transfer_amount - refund_amount, defi_balance.0);
 }
 
