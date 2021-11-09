@@ -330,19 +330,26 @@ impl ImplItemMethodInfo {
                         quote!()
                     };
 
-                let payable = if self.attrs.payable {
-                    quote!()
-                } else {
-                    // TODO: the sdk doesn't make this check if the method is View
-                    // (because payable+view was already denied when extracting info)
-                    // decide wether to insert the check (which is prob. safer long-term)
+                let payable = match (&self.inputs.receiver_kind, self.attrs.payable) {
+                    // methods can are Call (non-View) and forbids payments
+                    (
+                        ReceiverKind::RefMut | ReceiverKind::Owned | ReceiverKind::StatelessInit,
+                        false,
+                    ) => quote! {
+                        Self::panic_on_deposit();
+                    },
+                    // methods can are Call (non-View) and allows payments
+                    (
+                        ReceiverKind::RefMut | ReceiverKind::Owned | ReceiverKind::StatelessInit,
+                        true,
+                    ) => quote!(),
+                    // methods that are View cannot verify if there is
+                    // some attached payment (env::attached_deposit),
+                    // so there is no need to verify it
                     //
-                    // TODO: or else have a test to focus on all possible regressions of this
-                    // situation
-                    //
-                    // (safety-related) conservative approach is being used:
-                    // check even for view methods (cons: higher gas usage)
-                    quote!(Self::panic_on_deposit();)
+                    // TODO: when setting #[contract(payable)], deny that
+                    // attribute itself for view methods
+                    (_, _) => quote!(),
                 };
 
                 // TODO: decide whether all methods should be private by default,
