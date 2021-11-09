@@ -61,22 +61,22 @@ cargo doc -p contract-standards -p contract-interface --no-deps --example exampl
 
 #### Dummy Example Files
 
-- [example_01](./examples/example_01/lib.rs):  
+- [example_01](./examples/dummy/example_01/lib.rs):  
   Has methods that have different cases of `self`.  
-  Uses a [generated builder](./examples/example_01/client.rs) for making external calls.  
+  Uses a [generated builder](./examples/dummy/example_01/client.rs) for making external calls.  
   For the motivation on this, please check [#4](https://github.com/chikai-io/contract-interface/issues/4) and [#14](https://github.com/chikai-io/contract-interface/issues/14).  
-  Shows [manually](./examples/example_01/api_manual.rs) and [automatically](./examples/example_01/api.rs) created `extern "C"` functions for the binary.  
-- [example_02](./examples/example_02/lib.rs):  
+  Shows [manually](./examples/dummy/example_01/api_manual.rs) and [automatically](./examples/dummy/example_01/api.rs) created `extern "C"` functions for the binary.  
+- [example_02](./examples/dummy/example_02/lib.rs):  
   Has traits that use many types of generics (all dummy usages).  
-  Shows [manually](./examples/example_02/api_manual.rs) and [automatically](./examples/example_02/api.rs) created `extern "C"` functions for the binary.  
+  Shows [manually](./examples/dummy/example_02/api_manual.rs) and [automatically](./examples/dummy/example_02/api.rs) created `extern "C"` functions for the binary.  
   Note that all generics must be known or defined at that time.
-- [example_03](./examples/example_03/lib.rs):  
+- [example_03](./examples/dummy/example_03/lib.rs):  
   Has a contract that contains a `FungibleToken` from the standard.
-  Shows [manually](./examples/example_03/api_manual.rs) and [automatically](./examples/example_03/api.rs) created `extern "C"` functions for the binary.  
-- [example_04](./examples/example_04/lib.rs):  
+  Shows [manually](./examples/dummy/example_03/api_manual.rs) and [automatically](./examples/dummy/example_03/api.rs) created `extern "C"` functions for the binary.  
+- [example_04](./examples/dummy/example_04/lib.rs):  
   Has methods that have some argument diversity,  
   such as receiving references.
-  Shows [manually](./examples/example_04/api_manual.rs) and [automatically](./examples/example_04/api.rs) created `extern "C"` functions for the binary.  
-- [example_05](./examples/example_05/lib.rs):  
+  Shows [manually](./examples/dummy/example_04/api_manual.rs) and [automatically](./examples/dummy/example_04/api.rs) created `extern "C"` functions for the binary.  
+- [example_05](./examples/dummy/example_05/lib.rs):  
   Has methods that use some attributes, such as `init` and such).
-  Shows [manually](./examples/example_05/api_manual.rs) and [automatically](./examples/example_05/api.rs) created `extern "C"` functions for the binary.  
+  Shows [manually](./examples/dummy/example_05/api_manual.rs) and [automatically](./examples/dummy/example_05/api.rs) created `extern "C"` functions for the binary.  
